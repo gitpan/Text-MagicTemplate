@@ -2,7 +2,6 @@ package Text::MagicTemplateX;
 $VERSION = '1.0';
 __END__
 
-
 =head1 NAME
 
 Text::MagicTemplateX:: - namespace used by the extension of Text::MagicTemplate

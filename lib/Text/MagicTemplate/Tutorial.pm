@@ -1,6 +1,10 @@
+package Text::MagicTemplate::Tutorial
+$VERSION = '1.01'
+__END__
+
 =head1 NAME
 
-Text::MagicTemplate::Tutorial - simple tutorial for Text::MagicTemplate.
+Text::MagicTemplate::Tutorial - useful tutorial for Text::MagicTemplate.
 
 =head1 DESCRIPTION
 

@@ -1,6 +1,5 @@
 package Text::MagicTemplateX::Core;
 $VERSION = '1.0';
-
 __END__
 
 =head1 NAME

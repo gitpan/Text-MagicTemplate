@@ -4,7 +4,7 @@ README
 Warning
 lib/Text/MagicTemplate.pm
 lib/Text/MagicTemplate.pod
-lib/Text/MagicTemplate/Tutorial.pod
+lib/Text/MagicTemplate/Tutorial.pm
 lib/Text/MagicTemplate/Utilities.pm
 lib/Text/MagicTemplateX.pm
 lib/Text/MagicTemplateX/ARRAY.b
