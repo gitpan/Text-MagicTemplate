@@ -28,6 +28,7 @@ t/19_zero_string.t
 t/20_trace_deletions.t
 t/21_EVAL_ATRIBUTES.t
 t/22_lookup_id.t
+t/23_loop_no_array.t
 t/included_test_01
 t/included_test_02
 t/template_test_01

@@ -1,11 +1,10 @@
 package Text::MagicTemplate::Zone ;
-$VERSION = 3.12                   ;
+$VERSION = 3.13                   ;
 use 5.005                         ;
 use strict                        ;
 our $AUTOLOAD                     ;
 
 sub new { bless $_[1], $_[0] }
-
 
 sub content_process
 {
@@ -44,8 +43,8 @@ sub lookup
   my $val ;
   for ( my $az=$z->container ; $az->container ; $az=$az->container )
       { return $val if defined ($val = $z->_lookup($az->value, $id)) }
-  for ( @{$z->mt->{-lookups}} )
-      { return $val if defined ($val = $z->_lookup($_, $id)) }
+  foreach my $ll ( @{$z->mt->{-lookups}} )
+      { return $val if defined ($val = $z->_lookup($ll, $id)) }
   undef
 }
 
@@ -69,8 +68,8 @@ sub value_process
 {
   my ($z) = @_ ;
   return unless defined $z->value ;
-  my $ch = $z->mt->{-value_handlers} or return;
-  HANDLER: for (@$ch) { $_->(@_) }
+  my $ch = $z->mt->{-value_handlers} or return ;
+  HANDLER: foreach my $h (@$ch) { $h->(@_) }
 }
 
 sub content
@@ -86,7 +85,7 @@ sub AUTOLOAD :lvalue
   no strict 'refs';
   if ( my ($w) = $n=~/^(\w+)_process$/ ) # process
   { *$AUTOLOAD = sub { my $ch = $_[0]->mt->{"-${w}_handlers"} or return;
-                       HANDLER: for (@$ch) {$_->(@_)} } }
+                       HANDLER: foreach my $h (@$ch) {$h->(@_)} } }
   elsif ( $n=~/^(?:mt|id|attributes)$/ ) # read only properties
   { *$AUTOLOAD = sub{ $_[0]->{$n} } }
   else # read-write lvalue properties
@@ -105,7 +104,7 @@ __END__
 
 Text::MagicTemplate::Zone - The Zone object
 
-=head1 VERSION 3.12
+=head1 VERSION 3.13
 
 =head1 DESCRIPTION
 

@@ -1,5 +1,5 @@
 package Text::MagicTemplate   ;
-$VERSION = 3.12               ;
+$VERSION = 3.13               ;
 use 5.005                     ;
 use Carp qw ( croak )         ;
 use strict                    ;
@@ -37,8 +37,8 @@ sub _init
   }
   $s->{-markers} = [ map {qr/$_/s} @{$s->{-markers}},
                                     '(?:(?!'.$s->{-markers}[2].').)*', '\w+' ] ;
-  for ( qw(zone value post) )
-  { $s->{"-${_}_handlers"} &&= [ $s->_Hload($s->{"-${_}_handlers"}, $_) ] }
+  foreach my $h ( qw(zone value post) )
+  { $s->{"-${h}_handlers"} &&= [ $s->_Hload($s->{"-${h}_handlers"}, $h) ] }
 }
   
 sub _Hload
@@ -93,7 +93,7 @@ sub set_block
             (?: (?! $S$id$A$E) (?! $S$I$id$E) . )*
             $S$I$id$E
           /$$new||$new/xgse ;
-  $t;
+  $t ;
 }
 
 sub output
@@ -154,7 +154,6 @@ sub _split_template
                             z => do {    /$end_label/   &&  $1
                                       || /$start_label/ && {id         => $1,
                                                             attributes => $2} }
-    
                           }
                         } split /$label/, $$t ;
   for ( my $i = $#template; $i >= 0; $i-- )  # find end
@@ -177,23 +176,25 @@ sub _split_template
 
 ############################## STANDARD HANDLERS ##############################
 
-# override these in subclasses to change defaults
+# override these DEFAULT subs in subclasses to change defaults
+
 sub DEFAULT_VALUE_HANDLERS
 {
-  [ SCALAR() ,
-    REF()    ,
-    CODE()   ,
-    ARRAY()  ,
-    HASH()   ]
+  my ($s) = @_ ;
+  [ $s->SCALAR ,
+    $s->REF    ,
+    $s->CODE   ,
+    $s->ARRAY  ,
+    $s->HASH   ]
 }
 
-sub DEFAULT_ZONE_HANDLERS   { undef                                        }
-sub DEFAULT_POST_HANDLERS   { undef                                        }
-sub DEFAULT_TEXT_HANDLERS   { undef                                        }
-sub DEFAULT_PRINT_HANDLERS  { sub{ print $_[1] }                           }
-sub DEFAULT_OUTPUT_HANDLERS { sub{ $_[0]->mt->{output} .= $_[1] }          }
-sub DEFAULT_MARKERS         { [ qw| { / } | ]                              }
-sub HTML_MARKERS            { [ qw| <!--{ / }--> | ]                       }
+sub DEFAULT_ZONE_HANDLERS   { undef                               }
+sub DEFAULT_POST_HANDLERS   { undef                               }
+sub DEFAULT_TEXT_HANDLERS   { undef                               }
+sub DEFAULT_PRINT_HANDLERS  { sub{ print $_[1] }                  }
+sub DEFAULT_OUTPUT_HANDLERS { sub{ $_[0]->mt->{output} .= $_[1] } }
+sub DEFAULT_MARKERS         { [ qw| { / } | ]                     }
+sub HTML_MARKERS            { [ qw| <!--{ / }--> | ]              }
                                                                          
 sub SCALAR # value handler
 {
@@ -232,7 +233,7 @@ sub ARRAY # value handler
     my ($z) = @_;
     if (ref $z->value eq 'ARRAY')       # if it's an ARRAY
     {
-     foreach ( @{$z->value} )          # for each value in the array
+     foreach ( @{$z->value} )           # for each value in the array
       {
         # witout cloning the object
         $z->value = $_    ;             # set the value for the zone
@@ -250,8 +251,8 @@ sub HASH # value handler
     my ($z) = @_;
     if (ref $z->value eq 'HASH')        # if it's a HASH
     {
-      $z->content_process                 ;     # start again the process
-      last HANDLER                ;     # end of HANDLER loop
+      $z->content_process ;             # start again the process
+      last HANDLER        ;             # end of HANDLER loop
     }
   }
 }
@@ -375,7 +376,7 @@ sub ID_list
 
 Text::MagicTemplate - magic merger of runtime values with templates
 
-=head1 VERSION 3.12
+=head1 VERSION 3.13
 
 =head1 WARNING!
 
@@ -530,17 +531,6 @@ I<(in this example Lower case are from templates and Upper case are from code)>:
 
 =back
 
-
-=head2 Policy
-
-The main principle of Text::MagicTemplate is: B<keep the designing separated from the coding>, giving all the power to the programmer and letting designer do only design. In other words: while the code includes ALL the active and dynamic directions to generate the output, the template is a mere passive and static file, containing just placeholder (zones) that the code will replace with real data.
-
-This philosophy keep both jobs very tidy and simple to do, avoiding confusion and enforcing clearness, specially when programmer and designer are 2 different people. But another aspect of the philosophy of Text::MagicTemplate is flexibility, something that gives you the possibility to easily B<bypass the rules>.
-
-Even if I don't encourage breaking the main principle (keep the designing separated from the coding), sometimes you might find useful to put inside a template some degree of perl code, or may be you want just to interact DIRECTLY with the content of the template. See L<"Use subroutines to rewrite links"> and L<"Embed perl into a template"> for details.
-
-Other important principles of Text::MagicTemplate are scalability and expandability. The whole extension system is built on these principles, giving you the possibility of control the behaviour of this module by omitting, changing the orders and/or adding your own handlers, without the need of subclassing the module. See L<"CUSTOMIZATION">.
-
 =head2 Features
 
 Since syntax and coding related to this module are very simple and mostly automatic, you should careful read this section to have the right idea about its features and power. This is a list - with no particular order - of the most useful features and advantages:
@@ -549,7 +539,7 @@ Since syntax and coding related to this module are very simple and mostly automa
 
 =item * Simple, flexible and powerful to use
 
-In simple cases, you will have just to use L<new()|"new ( [constructor_parameter] )"> and L<print(template)|"print ( template [, identifier] )"> methods, without having to pass any other value to the object: it will do the right job for you. However you can fine tune the behaviour as you need. (see L<"CUSTOMIZATION">)
+In simple cases, you will have just to use L<new()|"new ( [constructor_arrays] )"> and L<print(template)|"print ( template [, identifier] )"> methods, without having to pass any other value to the object: it will do the right job for you. However you can fine tune the behaviour as you need. (see L<"CUSTOMIZATION">)
 
 =item * Extremely simple and configurable template syntax
 
@@ -573,7 +563,7 @@ When you need complex outputs you can build any immaginable nested loop, even mi
 
 =item * Scalable and expandable extensions system
 
-You can load only the handlers you need, to gain speed, or you can add as many handlers you will use, to gain features. You can even write your own extension handler in just 2 or 3 lines of code, expanding its capability for your own purpose. (see L<new()|"new ( [constructor_arrays] )"> method )
+You can load only the handlers you need, to gain speed, or you can add as many handlers you will use, to gain features. You can even write your own extension handler in just 2 or 3 lines of code, expanding its capability for your own purpose. (see L<"CUSTOMIZATION"> )
 
 =item * Efficient and fast
 
@@ -608,6 +598,16 @@ Change your code and Text::MagicTemplate will change its behaviour accordingly. 
 The MagicTemplate system doesn't use any other module and its code (including all the standard and autoloaded handlers) is just about 300 lines of pure perl I<(easier to write that this documentation :-) )>. You don't need any compiler in order to install it on any platform.
 
 =back
+
+=head2 Policy
+
+The main principle of Text::MagicTemplate is: B<keep the designing separated from the coding>, giving all the power to the programmer and letting designer do only design. In other words: while the code includes ALL the active and dynamic directions to generate the output, the template is a mere passive and static file, containing just placeholder (zones) that the code will replace with real data.
+
+This philosophy keep both jobs very tidy and simple to do, avoiding confusion and enforcing clearness, specially when programmer and designer are 2 different people. But another aspect of the philosophy of Text::MagicTemplate is flexibility, something that gives you the possibility to easily B<bypass the rules>.
+
+Even if I don't encourage breaking the main principle (keep the designing separated from the coding), sometimes you might find useful to put inside a template some degree of perl code, or may be you want just to interact DIRECTLY with the content of the template. See L<"Use subroutines to rewrite links"> and L<"Embed perl into a template"> for details.
+
+Other important principles of Text::MagicTemplate are scalability and expandability. The whole extension system is built on these principles, giving you the possibility of control the behaviour of this module by omitting, changing the orders and/or adding your own handlers, without the need of subclassing the module. See L<"CUSTOMIZATION">.
 
 =head1 INSTALLATION
 
@@ -917,6 +917,8 @@ Use this constructor array to explicitly define where to look up the values in y
 
 With B<packages names> the lookup is done with all the IDENTIFIERS (variables and subroutines) defined in the package namespace.
 
+B<Note>: Please, note that the lexical variables (those declared with C<my>) are unaccessible from outside the enclosing block, file, or eval, so don't expect that the lookup could work with these variables: it is a perl intentional restriction, not a limitation of this module. However, you could declare them  with the old C<vars> pragma or C<our> declaration instead, and the lookup will work as expected.
+
 With B<blessed objects> the lookup is done with all the IDENTIFIERS (variables and methods) defined in the class namespace. B<Note>: Use this type of location when you want to call an object method from a template: the method will receive the blessed object as the first parameter and it will work as expected.
 
 With B<hash references> the lookup is done with the KEYS existing in the hash.
@@ -967,11 +969,11 @@ If you use Text::MagicTemplate inside another module, you can pass the blessed o
 
 so that if some I<zone identifier> will trigger 'I<method_triggered_by_lookup>', it will receive the blessed object as the first parameter and it will work as expected.
 
-I<(see also L<Text::Magictemplate::Zone/"lookup">)>.
+I<(see also L<Text::Magictemplate::Zone/"lookup_process()">)>.
 
 =head3 zone_handlers
 
-Use this constructor array to add handlers to manage the output generation before any other process (even before the C<lookup()>). The zone handlers are executed just after the creation of the new zone, so you can even bypass or change the way of calling the other processes.
+Use this constructor array to add handlers to manage the output generation before any other process (even before the C<lookup_process()>). The zone handlers are executed just after the creation of the new zone, so you can even bypass or change the way of calling the other processes.
 
 This constructor array can contain B<code references> and/or B<standard zone handlers names> (resulting in one or more code references: see L<standard zone handlers> for details.
 
@@ -1037,9 +1039,9 @@ If you don't pass any C<value_handler> constructor array, the default will be us
 
     # that expicitly means
     $mt = new Text::MagicTemplate
-          value_handlers => [ qw( SCALAR REF CODE ARRAY HASH GLOB ) ] ;
+          value_handlers => [ qw( SCALAR REF CODE ARRAY HASH ) ] ;
 
-Where 'DEFAULT', 'SCALAR', 'REF', 'CODE', 'ARRAY', 'HASH', 'GLOB' are I<standard value handlers names>.
+Where 'DEFAULT', 'SCALAR', 'REF', 'CODE', 'ARRAY', 'HASH' are I<standard value handlers names>.
 
 You can add, omit or change the order of the element in the array, fine tuning the behaviour of the object.
 
@@ -1048,7 +1050,11 @@ You can add, omit or change the order of the element in the array, fine tuning t
     
     # that explicitly means
     $mt = new Text::MagicTemplate
-              value_handlers => [ 'SCALAR','REF','CODE', 'ARRAY','HASH', 'GLOB'
+              value_handlers => [ 'SCALAR'     ,
+                                  'REF'        ,
+                                  'CODE'       ,
+                                  'ARRAY'      ,
+                                  'HASH'       ,
                                   \&my_handler ] ;
     
     # or you can add, omit and change the order of the handlers
@@ -1197,7 +1203,7 @@ Finally, if no value are found in the code, the I<zone> will be B<deleted>.
 
 =back
 
-These are spme examples of default value handlers:
+These are some examples of default value handlers:
 
 The same template: '{block}|before-{label}-after|{/block}'
 
@@ -1246,7 +1252,7 @@ To include a file in a template just set a label with the pathname of the file a
 
     {'/temp/footer.html'}
 
-The file will be included in place of the label and it will be processed as usual.
+The file will be included in place of the label and it will be processed as usual. B<Note>: this is a deprecated way to include a template file and it's here only for backward compatibility. Pleae use the 'INCLUDE_TEMPLATE' label explained below.
 
 Another explicit way to do so is using this label:
 
@@ -1256,14 +1262,14 @@ B<Note>: in this case do not use quote!
 
 =head2 Include (huge) text files without memory charges
 
-To include in the output a (probably huge) text file, without having to keep it in memory as a template, and without any other parsing, add the 'INCLUDE_TEXT' I<zone handler> and add a label with the I<zone identifier> equal to 'INCLUDE_TEXT' and the I<zone attributes> equal to the file path to include.
+To include in the output a (probably huge) text file, without having to keep it in memory as a template, and without any other parsing, add the L<INCLUDE_TEXT> I<zone handler> and add a label with the I<zone identifier> equal to 'INCLUDE_TEXT' and the I<zone attributes> equal to the file path to include.
 
     $mt = new Text::MagicTemplate
               zone_handlers => 'INCLUDE_TEXT' ;
 
 The template label:
 
-    {INCLUDE_TEXT /path/to/text/file>}
+    {INCLUDE_TEXT /path/to/text/file}
 
 B<Note>: do not use quote!
 
@@ -1275,7 +1281,7 @@ B<Note>: do not use quote!
 
     # redefine the markers as needed
     $mt = new Text::MagicTemplate
-              markers => [qw( <- / -> ) ] ;
+              markers => [ qw( <- / -> ) ] ;
 
 =item by using a standard markers
 
@@ -1496,6 +1502,34 @@ Note that the value of the keys I<'details'> are a reference to an array of hash
     -------------------
 
 =back
+
+=head2 Process a (huge) loop iteration by iteration
+
+Usually a loop is build just by an array of hashes value (see L<"Build a loop">). this means that you have to fill an array with all the hashes BEFORE the process starts. In normal situation (i.e. the array contains just a few hashes) this is not a problem, but if the array is supposed to contain a lot of hashes, it could be more efficient create each hash just DURING the process and not BEFORE (i.e. without storing it in any array).
+
+For example imagine that in the L<"Build a loop"> example, the array comes from a huge file like this:
+
+    8-2-02|purchase
+    9-3-02|payment
+    ... some hundred lines
+
+You could generate the output line by line with a simple sub like this:
+
+    sub my_loop
+    {
+      my ($z) = @_ ;
+      open FILE, '/path/to/data/file' ;
+      while (<FILE>) # for each line of the file
+      {
+        chomp ;
+        my $line_hash ;
+        @$line_hash{'date', 'operation'} = split /\|/ ;  # create line hash
+        $z->value = $line_hash ;                         # set the zone value
+        $z->value_process() ;                            # process the value
+      }
+    }
+
+This way you completely avoid the array overload.
 
 =head2 Setup an if-else condition
 
@@ -1779,7 +1813,7 @@ Just explicitly omit the C<CODE> value handler when you create the object, so no
     $mt = new Text::MagicTemplate
               lookups => \%my_restricted_hash ;
 
-With this code the lookup is restricted to just the identifiers used in the template, thus the subroutine C<my_potentially_dangerous_sub> is unavailable to the outside world. (see C<new()> method).
+With this code the lookup is restricted to just the identifiers used in the template, thus the subroutine C<my_potentially_dangerous_sub> is unavailable to the outside world.
 
 =back
 
@@ -1817,11 +1851,11 @@ Note that the default syntax markers ({/}) could somehow clash with perl blocks,
 
 =back
 
-=head2 Use the system efficiently
+=head1 EFFICIENCY
 
 Specially under mod_perl, you should be careful about the way you use Text::MagicTemplate. The system is very flexible, so you can use it in a variety of ways, but you have to know what is the best option for your needs.
 
-You can avoid waste of memory by avoiding the method C<output()> that needs to collect and store the output in memory. Use C<print()> instead that prints the output while it is produced, without charging the memory.
+You can avoid waste of memory by avoiding the method L<output()|"output ( template [, identifier] )"> that needs to collect and store the output in memory. Use L<print()|"print ( template [, identifier] )"> instead that prints the output while it is produced, without charging the memory.
 
 Don't pass big templates contents as a reference, because Text::MagicTemplate copies the content in an internal and optimized representation of the template, so you would need twice the memory.
 
@@ -1852,6 +1886,20 @@ You can use a single object to cache multiple templates:
    
    # in sub B
    $mt->print('/path/to/templateB') ;
+
+For memory optimization see also:
+
+=over
+
+=item *
+
+L<"Include (huge) text files without memory charges">
+
+=item *
+
+L<"Process a (huge) loop iteration by iteration">
+
+=back
 
 =head1 SYNTAX GLOSSARY
 
