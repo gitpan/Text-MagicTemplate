@@ -1,5 +1,5 @@
 package Text::MagicTemplateX::Core;
-$VERSION = '1.0';
+$VERSION = 1.01;
 __END__
 
 =head1 NAME
@@ -174,7 +174,7 @@ a I<REFERENCE> value (SCALAR or REF)
 
 =item Action
 
-dereferencing of the value and apply_behaviour method with the dereferenced value
+dereferencing of the value and C<apply_behaviour> method with the dereferenced value
 
 =back
 
@@ -188,13 +188,13 @@ a I<CODE> value
 
 =item Action
 
-code execution and apply_behaviour method with the returned value
+code execution and C<apply_behaviour> method with the returned value. The subroutine will receive the I<content> and the I<attributes> of the zone.
 
 =item Description
 
 If you want to avoid the execution of subs, triggered by some identifier, just explicitly omit this behaviour:
 
-    $me = new Text::MagicTemplate { -behaviours => [qw(SCALAR REF ARRAY HASH)] };
+    $mt = new Text::MagicTemplate { -behaviours => [qw(SCALAR REF ARRAY HASH)] };
 
 See L<Avoid unwanted executions|Text::MagicTemplate::Tutorial/"Avoid unwanted executions"> for details. See also L<Pass parameters to a subroutine|Text::MagicTemplate::Tutorial/"Pass parameters to a subroutine">
 
@@ -210,7 +210,7 @@ an I<ARRAY> value
 
 =item Action
 
-apply_behaviour method with each item of the array, and replacement of the zone with the joined results.
+C<apply_behaviour> method with each item of the array, and replacement of the zone with the joined results.
 
 =item Description
 
@@ -246,7 +246,7 @@ I<zone identifier> equal to '_EVAL_'
 
 =item Action
 
-perl eval function with the I<zone content> and apply_behaviour method with the returned value
+perl eval function with the I<zone content> and C<apply_behaviour> method with the returned value
 
 =item Description
 
@@ -254,7 +254,7 @@ For obvious reasons you should use this behaviour ONLY if you are the programmer
 
     $mt = new Text::MagicTemplate { -behaviours => ['DEFAULT', '_EVAL_'] };
 
-B<WARNING>: Since the result of the eval() will be passed to the C<apply_behaviour()> method, you must include this behaviour as the last element in the C<-behaviours> constructor array, or your code will go in an infinite loop.
+B<WARNING>: Since the result of the eval() will be passed to the C<apply_behaviour> method, you must include this behaviour as the last element in the C<-behaviours> constructor array, or your code will go in an infinite loop.
 
 =back
 

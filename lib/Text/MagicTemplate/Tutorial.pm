@@ -1,5 +1,5 @@
 package Text::MagicTemplate::Tutorial;
-$VERSION = '1.02';
+$VERSION = 1.03;
 __END__
 
 =head1 NAME
@@ -42,13 +42,17 @@ The standard installation comes with a HTML friendly markers extension that impl
 
 If you need some custom and permanent solution you can create your own syntax extension.
 
-Redefine the markers and save this code as the file F<'myCustomMarkers.m'> into the Text::MagicTemplateX directory:
+Redefine the markers and save this code as the file F<'myCustomMarkers.m'>:
 
     [ qw(__ END_ __) ]; # redefine these values as needed
 
-Use it by loading the extension as usual:
+If you save it into the Text::MagicTemplateX directory, you can use it by loading the extension as usual:
 
     $mt = new Text::MagicTemplate { -markers => 'myCustomMarkers' };
+
+or you can use it by explicitly loading the file with a do() statement:
+
+    $mt = new Text::MagicTemplate { -markers => do 'path/to/myCustomMarkers' };
 
 This syntax would work with this block labeled 'my_identifier':
 
@@ -323,7 +327,7 @@ A C<$type> set to 'type_D' would produce this output:
 
 =head2 Pass parameters to a subroutine
 
-Text::MagicTemplate can execute subroutines from your code: when you use a block identifier that matches with a subroutine identifier, the subroutine will receive the content of the block as a single parameter and will be executed. This is very useful when you want to return a modified copy of the template content itself, or if you want to allow the designer to pass parameter to the subroutines, or if you want to evaluate a perl expression inside the template.
+Text::MagicTemplate can execute subroutines from your code: when you use a block identifier that matches with a subroutine identifier, the subroutine will receive the I<content> and the I<attributes> of the block as parameters and will be executed. This is very useful when you want to return a modified copy of the template content itself, or if you want to allow the designer to pass parameter to the subroutines, or if you want to evaluate a perl expression inside the template.
 
 This example show you how to allow the designer to pass some parameters to a subroutine in your code.
 
@@ -339,14 +343,45 @@ The content of 'matrix' block ('5,3') is used as parameter
 
     sub matrix
     {
-        my ($block_content) = shift;
-        my ($column, $row) = split ',' , $block_content;         # split the parameters
+        my ($block_content, $attributes) = @_;
+        my ($column, $row) = split ',' , $block_content; # split the parameters
         my $out;
         for (0..$row-1) {$out .= 'X' x $column. "\n"};
         $out;
     }
 
-The sub 'matrix' receive the content of the template block as a single parameter, and return the output for the block
+The sub 'matrix' receive the content of the template block, and return the output for the block
+
+=item the output
+
+    XXXXX
+    XXXXX
+    XXXXX
+
+=back
+
+The same example could be written as follow:
+
+=over
+
+=item the template
+
+    {matrix 5 3}
+
+The attributes of 'matrix' label ('5 3') is used as parameter
+
+=item the code
+
+    sub matrix
+    {
+        my ($block_content, $attributes) = @_;
+        my ($column, $row) = split ' ' , $attributes; # split the parameters
+        my $out;
+        for (0..$row-1) {$out .= 'X' x $column. "\n"};
+        $out;
+    }
+
+The sub 'matrix' receive the attributes of the template block, and return the output for the block
 
 =item the output
 
@@ -418,7 +453,7 @@ Add the description of each label and block to the captured output and give it t
 
 F<MagicTemplate.pm> does not use any eval() statement, it just do a recursive search and replace with the content of the template. Besides, the allowed characters for identifiers are only alphanumeric C<(\w+)>, so even dealing with tainted templates should not raise any security problem that you wouldn't have in your program itself.
 
-However, since the module is just about 90 lines of code, you should consider to analise it directly. If you do this, please send me some feedback.
+However, since the module is just about 100 lines of code, you should consider to analise it directly. If you do this, please send me some feedback.
 
 =head3 Avoid unwanted executions
 

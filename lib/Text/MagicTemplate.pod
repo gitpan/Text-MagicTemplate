@@ -78,6 +78,35 @@ I<(in this example Lower case are from templates and Upper case are from code)>:
 
 =head1 DESCRIPTION
 
+=head2 Quick overview
+
+Text::MagicTemplate is a module that allows you to generate the output of your programs in a very easy way. The following is a very simple example only aimed to better understand how it works: obviously, the usefulness of Text::MagicTemplate comes up when the output became more complex.
+
+Imagine you need an output that looks like this template file:
+
+    City: {city}
+    Date and Time: {date_and_time}
+
+where {city} and {date_and_time} are just placeholder that you want to be replaced in the output by some real runtime values. Somewhere in your code you have defined a scalar and a sub to return the 'city' and the 'date_and_time' values:
+
+    $city = 'NEW YORK';
+    sub date_and_time { localtime }
+
+you have just to add these 3 "magic" lines to the code:
+
+    use Text::MagicTemplate;
+    $mt = new Text::MagicTemplate;
+    $mt->print( 'my_template_file' );
+
+to generate this output:
+
+    City: NEW YORK
+    Date and Time: Sat Nov 16 21:03:31 2002
+
+With the same 3 magic lines of code, Text::MagicTemplate can automatically look up values from I<scalars>, I<arrays>, I<hashes>, I<references> and I<objects> from your code and produce very complex outputs. The default settings are usually smart enough to do the right job for you, however if you need complete control over the output generation, you can fine tune them by controlling them explicitly.
+
+=head2 Concept
+
 Text::MagicTemplate is a "magic" interface between programming and design. It makes "magically" available all the runtime values - stored in your variables or returned by your subroutines - inside a static template file. B<There's usually no need to assign values to the object>. Template outputs are linked to runtime values by their I<identifiers>, which are added to the template in the form of simple I<labels> or I<blocks> of content.
 
     a label: {identifier}
@@ -85,55 +114,7 @@ Text::MagicTemplate is a "magic" interface between programming and design. It ma
 
 From the designer point of view, this makes things very simple. The designer has just to decide B<what> value and B<where> to put it. Nothing else is required, no complicated new syntax to learn!
 
-On the other side, the programmer has just to define variables and subroutines as usual and their values will appear in the right place within the output. The automatic interface allows the programmer to focus just on the code, saving him the hassle of interfacing code with output, and even complicated output - with complex switch branching and nested loops - can be easily organized by minding just a few simple concepts (see L<"How it works">).
-
-=head2 Structure
-
-This is the general three of the Text::MagicTemplate system (just in case you get lost :-) )
-
-    Bundle
-        Text
-             MagicTemplate  a bundle to install everything in one step
-    Text
-        MagicTemplate       the main module (start from here)
-            Tutorial        the tutorial (very useful)
-            Utilities       used internally (don't worry about it)
-        MagicTemplateX      extensions namespace (documentation for power users)
-            Core            core extensions collection
-            HTML            HTML extensions collection
-    HTML
-        MagicTemplate   wrapper for Text::MagicTemplate in HTML environment
-
-=head2 Installation
-
-=over
-
-=item Prerequisites
-
-    Perl version >= 5.005
-
-=item CPAN
-
-If you want to install Text::MagicTemplate plus all related extensions (L<Text::MagicTemplateX::HTML|Text::MagicTemplateX::HTML> and prerequisites), all in one easy step:
-
-    perl -MCPAN -e 'install Bundle::Text::MagicTemplate'
-
-=item Standard installation
-
-From the directory where this file is located, type:
-
-    perl Makefile.PL
-    make
-    make test
-    make install
-
-B<Note>: this installs just the main distribution and does not install L<Text::MagicTemplateX::HTML|Text::MagicTemplateX::HTML> and its prerequisites.
-
-=item Manual installation
-
-If your OS does not have any 'make' support, just copy the content of the /lib dir into perl installation site dir, maintaining the same hierarchy.
-
-=back
+On the other side, the programmer has just to define variables and subroutines as usual and their values will appear in the right place within the output. The automatic interface allows the programmer to focus just on the code, saving him the hassle of interfacing code with output, and even complicated output - with complex switch branching and nested loops - can be easily organized by minding just a few simple concepts. See L<"How it works"> for details.
 
 =head2 Policy
 
@@ -197,7 +178,7 @@ Change your code and Text::MagicTemplate will change its behaviour accordingly. 
 
 =item * Very lightweight
 
-F<MagicTemplate.pm> doesn't use any other module and its code is just about 90 lines I<(easier to write that this documentation :-) )>
+F<MagicTemplate.pm> doesn't use any other module and its code is just about 100 lines I<(easier to write that this documentation :-) )>
 
 =back
 
@@ -296,6 +277,54 @@ See the C<-behaviours> constructor array, and L<Text::MagicTemplateX::Core> for 
 =head3 long explanation
 
 This document plus L<Text::MagicTemplate::Tutorial> plus L<Text::MagicTemplateX::Core> plus L<Text::MagicTemplateX>.
+
+=head1 INSTALLATION
+
+=over
+
+=item Prerequisites
+
+    Perl version >= 5.005
+
+=item CPAN
+
+If you want to install Text::MagicTemplate plus all related extensions (L<Text::MagicTemplateX::HTML|Text::MagicTemplateX::HTML> and prerequisites), all in one easy step:
+
+    perl -MCPAN -e 'install Bundle::Text::MagicTemplate'
+
+=item Standard installation
+
+From the directory where this file is located, type:
+
+    perl Makefile.PL
+    make
+    make test
+    make install
+
+B<Note>: this installs just the main distribution and does not install L<Text::MagicTemplateX::HTML|Text::MagicTemplateX::HTML> and its prerequisites.
+
+=item Manual installation
+
+If your OS does not have any 'make' support, just copy the content of the /lib dir into perl installation site dir, maintaining the same hierarchy.
+
+=back
+
+=head2 Structure
+
+This is the general three of the Text::MagicTemplate system (just in case you get lost :-) )
+
+    Bundle
+        Text
+             MagicTemplate  a bundle to install everything in one step
+    Text
+        MagicTemplate       the main module (start from here)
+            Tutorial        the tutorial (very useful)
+            Utilities       used internally (don't worry about it)
+        MagicTemplateX      extensions namespace (documentation for power users)
+            Core            core extensions collection
+            HTML            HTML extensions collection
+    HTML
+        MagicTemplate       wrapper for Text::MagicTemplate in HTML environment
 
 =head1 METHODS
 
@@ -498,11 +527,11 @@ See also L<Prepare the identifiers description list|Text::MagicTemplate::Tutoria
 
 =item attributes
 
-The I<attributes> are alphanumeric words C<(\w+)> separated by a space that are optionally used to pass special parameter to the behaviour
+The I<attributes> are alphanumeric words C<(\w+)> separated by a space that are optionally used to pass special parameters to the behaviour
 
 =item behaviour
 
-The behaviour generated by Text::MagicTemplate (i.e. with the 'DEFAULT' behaviours, an UNDEF value type triggers the deletion of the zone, an ARRAY value type generates a loop).
+The behaviour generated by Text::MagicTemplate (i.e. with the 'DEFAULT' behaviours, an UNDEF value type triggers the deletion of the zone; an ARRAY value type generates a loop).
 
 =item block
 

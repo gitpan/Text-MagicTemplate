@@ -1,10 +1,10 @@
 package Text::MagicTemplateX;
-$VERSION = '1.0';
+$VERSION = 1.01;
 __END__
 
 =head1 NAME
 
-Text::MagicTemplateX:: - namespace used by the extension of Text::MagicTemplate
+Text::MagicTemplateX - namespace used by the extension of Text::MagicTemplate
 
 =head1 DESCRIPTION
 
@@ -20,7 +20,7 @@ The Text::MagicTemplate package and all packages below it (Text::MagicTemplate::
 
 Core extensions names are all capitals (see L<Text::MagicTemplate::Core>), so, in order to avoid confusion, other extension names should just begin with a capital letter (same rules as modules name convenction).
 
-Behaviours extensions that involve the use of reserved identifiers (as '_EVAL_' core behaviour extension name), should be started and ended with the underscore character '_', to avoid confusion with user identifiers.
+Behaviours extensions that involve the use of reserved identifiers (as the '_EVAL_' core behaviour extension name), should be started and ended with the underscore character '_', to avoid confusion with user identifiers.
 
 If you are planning to write your own extension, please, let me know the namespace you intend to use.
 
@@ -173,7 +173,22 @@ This sub pass the I<zone>, the evalued I<zone content> and the I<lookup element>
         && $s->apply_behaviour($z, eval $t->{content}, $l)
     }
 
-=back
+=item TableTiler (Text::MagicTemplateX::HTML behaviour)
+
+When included with the do() statement, this I<behaviour extension> loads L<HTML::TableTiler|HTML::TableTiler> module, then if the I<value> is a reference to an array, it pass the I<value>, the I<zone content> (if it exists), and the I<zone attributes> to the HTML::TableTiler::tile_table funcion. The C<eval{...}> statement traps the possible errors and returns undef if it not succeed, or the tiled table if it succeed.
+
+    use HTML::TableTiler ;
+
+    sub
+    {
+        my ($s, $t, $v, $l) = @_;
+        ref $v eq 'ARRAY'
+        && eval
+        {
+            local $SIG{__DIE__};
+            HTML::TableTiler::tile_table( $v, $t->{content} && \$t->{content}, $t->{attributes} )
+        }
+    }
 
 =back
 
