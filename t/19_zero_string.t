@@ -1,7 +1,9 @@
+use strict;
 use Test;
 use Text::MagicTemplate;
 BEGIN {  plan tests => 1 }
 
+our ($mt, $zero_string, $tmp, $content) ;
 $mt = new Text::MagicTemplate ;
 $zero_string = '0';
 sub sub_zero_string {'0'}

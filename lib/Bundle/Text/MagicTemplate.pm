@@ -1,5 +1,5 @@
 package Bundle::Text::MagicTemplate;
-$VERSION = '1.00';
+$VERSION = '3.00';
 __END__
 
 =head1 NAME
@@ -12,17 +12,17 @@ Bundle::Text::MagicTemplate - A bundle to install Text::MagicTemplate plus all r
 
 =head1 CONTENTS
 
-Text::MagicTemplate         - the main distribution
+Text::MagicTemplate     - the main distribution
 
-HTML::Tagset                - used by HTML::Parser
+HTML::Tagset            - used by HTML::Parser
 
-HTML::Parser                - used by HTML::FillInForm and HTML::TableTiler
+HTML::Parser            - used by HTML::FillInForm and HTML::TableTiler
 
-HTML::TableTiler            - used by Text::MagicTemplateX::HTML
+HTML::TableTiler        - used by HTML::MagicTemplate
 
-HTML::FillInForm            - used by Text::MagicTemplateX::HTML
+HTML::FillInForm        - used by HTML::MagicTemplate
 
-Text::MagicTemplateX::HTML  - the HTML extensions collection
+HTML::MagicTemplate     - the HTML extensions collection
 
 =head1 DESCRIPTION
 

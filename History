@@ -1,12 +1,47 @@
 Text::MagicTemplate Latest Versions Changes
 
+Version 3.03
+- A rare handler inheritance bug fixed
+
+Version 3.02 (not published)
+- Elimination of copy mt reference through the zone objects
+- Cosmetic changes in code
+
+Version 3.01 (not published)
+- Introduced new constructor interface without prepended '-' for
+  constructor arrays, and without brackets. The old interface is still working
+  for backward compatibility.
+- Dynamic zone lookups
+- Improved AUTOLOAD sub: you can set lvalue zone properties both way:
+  $z->prop='val' or $z->prop('val')
+- Improved POD
+- Introduced Version head in POD.
+
+Version 3.0 (not published)
+- Almost complete rewriting of the code: it does things straight and it is
+  simpler to understand and maintain
+- Standar handlers are code commented (just a little bit ;-)
+- New file structure: joined a lot of files in just 2 files + Bundle
+- New POD structure, simpler to read
+- Eliminated the extension system: now the modules relay on the
+  canonical AutoLoader module
+- Added several constructor arrays to allow even more customization
+  in different time of the process
+- Added several zone properties and a new left value AUTOLOAD sub
+- Added '_EVAL_ATTRIBUTES_' and 'TRACE_DELETION' standard zone handlers
+- Eliminated in place search and substitution (it was almost useless)
+- Increased memory efficiency: now the execution takes less memory
+
+Version 2.22
+- Fixed REF bug.
+
 Version 2.21
 - Fixed POD errors.
 
 Version 2.2
 - Fixed silly '0' bug.
-- Fixed in place sarch and substitution when a template is passed as a reference
-  to the  content
+- Fixed in place search and substitution when a template is passed as
+  a reference to the content
 - Added zone object method 'container()' to allow access to the container zone 
   object (former '_parent_zone()' private method)
 - Zone object method 'location()' substitutes the deprecated 'lookup_element()'

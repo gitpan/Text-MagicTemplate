@@ -1,7 +1,9 @@
+use strict;
 use Test;
 use Text::MagicTemplate;
 BEGIN {  plan tests => 1 }
 
+our ($mt, $content, $new_content, $changed_content, $tmp, $new_tmp, );
 $mt = new Text::MagicTemplate;
 $new_tmp = 'text before{my_new_block}content of the new block{/my_new_block}text after';
 $new_content = $mt->get_block ( \$new_tmp, 'my_new_block' );

@@ -72,11 +72,37 @@ The apply_behaviour method now check for a defined value, instead of a true
 value (that was the cause of a silly '0' bug).
 In case the 'condition_that_apply' is false, the behaviour must return undef:
 without the 'else {undef}' line, the behaviour would return an empty string '',
-and that (with the new check) will cause the deletion of the zone from the 
+and that (with the new check) will cause the deletion of the zone from the
 template.
+
+================================
+For code based on version < 3.0
+================================
+
+Renamed the -behaviours constructor array to -value_handler.
+
+Changed the way the custom behaviour (value handler) should do their job:
+now the value handler has nothing to return, it should set the value property
+and start the value_process method:
+
+Sloppy code:
+
+    sub
+    {
+      if (condition_that_apply)
+      {
+        $new_value = 'does something to find the value' ;
+        $z->value = $new_value ;
+        $z->value_process ;
+        last HANDLER ;
+      }
+    }
+
+The former '_EVAL_' behaviour is now the '_EVAL_' zone handler and should
+be passed with the -zone_handler constructor array.
 
 --
 Domizio Demichelis <dd@4pro.net>
-2003-09-17
+2003-10-14
 
 

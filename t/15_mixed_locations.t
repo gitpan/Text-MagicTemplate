@@ -1,8 +1,9 @@
+use strict ;
 use Test;
 use Text::MagicTemplate;
 BEGIN {  plan tests => 1 }
 
-
+our( $my_hash, $mt, $scalar_test, $tmp, $content) ;
 $my_hash = {scalar_test => 'SCALAR FROM HASH', P => 'PPP'};
 $mt = new Text::MagicTemplate { -lookups => [ $my_hash, 'main'] };
 $scalar_test = 'SCALAR';

@@ -1,6 +1,9 @@
+use strict ;
 use Test;
 use Text::MagicTemplate;
 BEGIN {  plan tests => 1 }
+
+our ($mt, $content, $tmp, $my_nested_loop);
 
 $mt = new Text::MagicTemplate;
 $tmp = 'A nested loop:{my_nested_loop}|Date: {date} - Operation: {operation} - Details:{details} - {quantity} {item}{/details} - {/my_nested_loop}|';

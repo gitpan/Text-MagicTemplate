@@ -15,23 +15,13 @@ Structure
 ---------
 
 This is the general three of the Text::MagicTemplate system
-(just in case you get lost :-) )
 
-    Bundle
-        Text
-             MagicTemplate  a bundle to install everything in one step
-    Text
-        MagicTemplate       the main module (start from here)
-            Zone            defines the zone object
-            Tutorial        the tutorial (very useful)
-            Utilities       used internally (don't worry about it)
-        MagicTemplateX      extensions namespace (documentation for power users)
-            Core            core extensions collection
-            HTML            HTML extensions collection
-    HTML
-        MagicTemplate   wrapper for Text::MagicTemplate in HTML environment
+    Bundle::Text::MagicTemplate  a bundle to install everything in one step
+    Text::MagicTemplate          the main module
+    Text::MagicTemplate::Zone    defines the zone object
+    HTML::MagicTemplate          handlers useful in HTML environment
 
-
+    
 Installation
 ------------
 
@@ -49,18 +39,22 @@ Installation
 2. Standard installation
 - from the directory where this file is located, type:
 
-	perl Makefile.PL
-	make
-	make test
-	make install
+        perl Makefile.PL
+        make
+        make test
+        make install
 
+        
+Uninstallation of obsolete modules
+----------------------------------
 
-3. Manual installation
-- if your OS does not have any 'make' support, just copy the
-content of the /lib dir into perl installation site dir, maintaining the same
-hierarchy
+If you have installed some 2.xx version you could want to uninstall the obsolete files from that installation. You should manually unlink (delete) the following files and directories (sorry, no automatic uninstallation yet):
 
+    Text/MagicTemplate/Tutorial.pm
+    Text/MagicTemplate/Utilities.pm
+    Text/MagicTemplateX.pm
+    Text/MagicTemplateX directory including all its content
 
 --
 Domizio Demichelis <dd@4pro.net>
-2003-09-09
+2003-10-14

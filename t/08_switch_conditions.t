@@ -1,8 +1,11 @@
+use strict;
+no strict 'refs';
 use Test;
 use Text::MagicTemplate;
 BEGIN {  plan tests => 1 }
 
 
+our ($mt, $a_scalar_1, $a_scalar_2, $type, $content, $tmp);
 $mt = new Text::MagicTemplate;
 $tmp = '{type_A}type A block with {a_scalar_1}{/type_A}{type_B}type B block with {a_scalar_2}{/type_B}{type_C}type C block with {a_scalar_1}{/type_C}{type_D}type D block with {a_scalar_2}{/type_D}';
 

@@ -1,7 +1,9 @@
+use strict ;
 use Test;
 use Text::MagicTemplate;
 BEGIN {  plan tests => 1 }
 
+our ($mt, $content, $tmp, $my_loop);
 
 $mt = new Text::MagicTemplate;
 $tmp = 'A loop:{my_loop}|Date: {date} - Operation: {operation}{/my_loop}|';
