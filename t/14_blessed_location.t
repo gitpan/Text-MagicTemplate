@@ -9,7 +9,8 @@ package Local::foo;
 sub new
 {
 	my $c = shift;
-	my $s = bless { tmp=> \ 'text before {method}placeholder{/method} text after'}, $c;
+	my $t = 'text before {method}placeholder{/method} text after';
+	my $s = bless { tmp=> \ $t}, $c;
 	$s->{mt} = new Text::MagicTemplate {-lookups=> $s };
 	$s;
 }

@@ -1,5 +1,5 @@
 package Text::MagicTemplateX;
-$VERSION = 2.11;
+$VERSION = 2.2;
 __END__
 
 =head1 NAME
@@ -36,11 +36,11 @@ When you type:
 
 'HTML' is interpreted as the I<markers extension name> and the C<-markers> constructor array will be set to the result of the execution of the F<Text/MagicTemplateX/HTML.m> file. This has the identical effect of:
 
-    $mt = new Text::MagicTemplate { -markers => do 'Text/MagicTemplateX/HTML.m' }
-
-that means:
-
-    $mt = new Text::MagicTemplate { -markers => [qw(<!--{ / }-->)] };
+    $mt = new Text::MagicTemplate 
+              { -markers => do 'Text/MagicTemplateX/HTML.m' }
+    
+    # that means
+    $mt = new Text::MagicTemplate { -markers => [qw( <!--{ / }--> ) ] };
 
 =head1 BEHAVIOURS EXTENSIONS
 
@@ -55,30 +55,35 @@ I<Behaviours extensions> may return a reference to an array of names of other I<
 When you type:
 
     $mt = new Text::MagicTemplate;
+    
     # this explicitly means
     $mt = new Text::MagicTemplate { -behaviours => 'DEFAULT' };
 
 'DEFAULT' is interpreted as a I<behaviour extension name> and the F<Text/MagicTemplateX/DEFALT.b> file is executed with the do() statement. This has the same effect of:
 
-    $mt = new Text::MagicTemplate { -behaviours => do 'Text/MagicTemplateX/DEFALT.b' };
+    $mt = new Text::MagicTemplate 
+              { -behaviours => do 'Text/MagicTemplateX/DEFALT.b' };
 
 Since the 'Text/MagicTemplateX/DEFAULT.b' file returns a reference to an array of I<behaviours extension names>:
 
-    [qw(SCALAR REF CODE ARRAY HASH)]
+    [ qw( SCALAR REF CODE ARRAY HASH ) ]
 
 the previous code line explicitly means:
 
-    $mt = new Text::MagicTemplate { -behaviours => [qw(SCALAR REF CODE ARRAY HASH)] };
+    $mt = new Text::MagicTemplate { -behaviours => [ qw( SCALAR
+                                                         REF
+                                                         CODE
+                                                         ARRAY
+                                                         HASH   ) ] };
 
 Since the C<-behaviour> constructor array is used to construct a switch-like condition, in the end, it must contain only references to callback subroutines, so the previous code will be interpreted this way:
 
-    $mt = new Text::MagicTemplate { -behaviours => [
-                                                      do 'Text/MagicTemplateX/SCALAR.b',
-                                                      do 'Text/MagicTemplateX/REF.b',
-                                                      do 'Text/MagicTemplateX/CODE.b',
-                                                      do 'Text/MagicTemplateX/ARRAY.b',
-                                                      do 'Text/MagicTemplateX/HASH.b'
-                                                    ] };
+    $mt = new Text::MagicTemplate 
+              { -behaviours => [  do 'Text/MagicTemplateX/SCALAR.b',
+                                  do 'Text/MagicTemplateX/REF.b',
+                                  do 'Text/MagicTemplateX/CODE.b',
+                                  do 'Text/MagicTemplateX/ARRAY.b',
+                                  do 'Text/MagicTemplateX/HASH.b'   ] };
 
 where each do() statement will return a reference to the sub contained in the I<behaviours extension file>.
 
@@ -96,7 +101,7 @@ the B<magic template object> reference: used to execute object methods. (see L<P
 
 =item * $_[1]
 
-the B<zone object> reference, used to access the zone methods. (see L<ZONE OBJECT METHODS>)
+the B<zone object> reference, used to access the zone methods. (see L<Text::MagicTemplate::Zone/"ZONE OBJECT METHODS">)
 
 =back
 
@@ -108,53 +113,62 @@ See these examples:
 
 =item SCALAR (Core behaviour)
 
-This sub returns the found value ($z->value), if it is not a reference (SCALAR), and ignores all other passed paramenter
+This code returns the found value ($z->value), IF it is not a reference (SCALAR), ELSE it returns undef.
 
     sub
     {
         my ($s, $z) = @_;
-        !ref $z->value
-        && $z->value
+        if (!ref $z->value) { $z->value }
+        else { undef }
     }
 
 =item HASH (Core behaviour)
 
-This sub pass the zone object ($z) to the object ($s) C<parse> method, if the found value is a reference to HASH.
+This code pass the zone object ($z) to the MagicTemplate object ($s) C<parse> method, IF the found value is a reference to HASH, ELSE it returns undef.
 
     sub
     {
         my ($s, $z) = @_;
-        ref $z->value eq 'HASH'
-        && $s->parse($z)
+        if (ref $z->value eq 'HASH') { ${$s->parse($z)} }
+        else { undef }
     }
 
 =item _EVAL_ (Core behaviour)
 
-This sub set the value of the zone to the evaluated content and pass the ref to the zone object to the object C<apply_behaviour> method, if the I<zone identifier> is equal to '_EVAL_'.
+This code set the value of the zone object to the evaluated content and passes the zone object to the MagicTemplate object ($s) C<apply_behaviour> method, IF the I<zone identifier> is equal to '_EVAL_', ELSE it returns undef.
 
     sub
     {
         my ($s, $z) = @_;
-        $z->id eq '_EVAL_'
-        && $s->apply_behaviour($z->value(eval $z->content))
+        if ($z->id eq '_EVAL_')
+        {
+            $s->apply_behaviour($z->value(eval $z->content))
+        }
+        else { undef }
     }
 
 =item TableTiler (Text::MagicTemplateX::HTML behaviour)
 
-When included with the do() statement, this I<behaviour extension> loads L<HTML::TableTiler|HTML::TableTiler> module, then if the I<value> is a reference to an array, it pass the I<value>, the I<zone content> (if it exists), and the I<zone attributes> to the HTML::TableTiler::tile_table funcion. The C<eval{...}> statement traps the possible errors and returns undef if it not succeed, or the tiled table if it succeed.
+When included with the do() statement, this code loads L<HTML::TableTiler|HTML::TableTiler> module, then IF the I<value> is a reference to an array, it pass the I<value>, the I<zone content> (if it exists), and the I<zone attributes> to the HTML::TableTiler::tile_table funcion. The C<eval{...}> statement traps the possible errors and returns undef if it not succeed, or the tiled table if it succeed, ELSE it returns undef.
 
     use HTML::TableTiler ;
-
+    
     sub
     {
         my ($s, $z) = @_;
-        ref $z->value eq 'ARRAY'
-        && eval
+        if (ref $z->value eq 'ARRAY')
         {
-            local $SIG{__DIE__};
-            HTML::TableTiler::tile_table( $z->value, $z->content && \$z->{content}, $z->{attributes} )
+            eval
+            {
+                local $SIG{__DIE__};
+                HTML::TableTiler::tile_table( $z->value, 
+                                              $z->content && \$z->{content},
+                                              $z->{attributes} )
+            }
         }
+        else { undef }
     }
+
 
 =back
 
@@ -166,7 +180,7 @@ This is a brief documentation of the privates methods you may need to use in ord
 
 =head2 parse ( zone )
 
-This method parses a template_string in order to find I<template zones>, calling the C<lookup> method each time a zone is found, thus generating the output relative to that template string.
+This method parses a template_string in order to find I<template zones>, calling the C<lookup> method each time a zone is found, thus generating the output relative to that template string. It returns the reference to the output.
 
 =head2 lookup ( zone )
 
@@ -174,45 +188,19 @@ This method scans the C<-lookups> constructor array to found a value in the code
 
 =head2 apply_behaviour ( zone )
 
-This method is pratically a switch conditions that calls in turn each behaviour fallback subroutine, present in the C<-behaviour> constructor array, searching a true value to return to the caller.
-
-=head1 ZONE OBJECT METHODS
-
-Since 2.1 version, Text::MagicTemplate uses the Text::MagicTemplate::Zone objects to internally represent zones. A reference to the I<zone object> is passed as a parameter to each behaviour subroutine and is passed to your subroutines whenever an identifier trigger their execution.
-
-=head2 id ( [value] )
-
-The id() method allows you to access and set the B<zone identifier>.
-
-=head2 attributes ( [value] )
-
-The attributes() method allows you to access and set the B<attributes string>. This string contains everything between the end of the label IDENTIFIER and the END_LABEL marker.
-
-=head2 content ( [value] )
-
-The content() method allows you to access and set the B<zone content>
-
-
-=head2 value ( [value] )
-
-The value() method allows you to access and set the B<found value>: since in perl it's impossible to pass multiple values with just one parameter, if the found value is a SCALAR or a REFERENCE it is passed in the $z->value 'as is'; if it is anything else, it is passed as a reference. For example:
-
-    found values          value in $_[1]->value
-    ------------------------------------
-    'SCALAR'              'SCALAR'
-    (1..5)                [1..5]
-    [1..5]                [1..5]
-    (key=>'value')        {key=>'value'}
-    {key=>'value'}        {key=>'value'}
-    ------------------------------------
-
-=head2 lookup_element ( [value] )
-
-The lookup_element() method allows you to access and set the B<lookup element>: the element of the C<-lookups> constructor array where the value ($z->value) is found. (see L<Text::MagicTemplate/-lookups> for details)
+This method is pratically a switch conditions that calls in turn each behaviour fallback subroutine, present in the C<-behaviour> constructor array, searching for a defined value to return to the caller.
 
 =head1 SEE ALSO
 
-L<Text::MagicTemplate|Text::MagicTemplate>, L<Text::MagicTemplate::Tutorial|Text::MagicTemplate::Tutorial>, L<Text::MagicTemplateX::Core|Text::MagicTemplateX::Core>, L<Text::MagicTemplateX::HTML|Text::MagicTemplateX::HTML>.
+=item * L<Text::MagicTemplate|Text::MagicTemplate>
+
+=item * L<Text::MagicTemplate::Zone|Text::MagicTemplate::Zone>
+
+=item * L<Text::MagicTemplate::Tutorial|Text::MagicTemplate::Tutorial>
+
+=item * L<Text::MagicTemplateX::Core|Text::MagicTemplateX::Core>
+
+=item * L<Text::MagicTemplateX::HTML|Text::MagicTemplateX::HTML>
 
 =head1 SUPPORT and FEEDBACK
 
@@ -233,3 +221,8 @@ This software may not be modified without first notifying the author (this is to
 This code is provided on an "As Is'' basis, without warranty, expressed or implied. The author disclaims all warranties with regard to this software, including all implied warranties of merchantability and fitness, in no event shall the author, be liable for any special, indirect or consequential damages or any damages whatsoever including but not limited to loss of use, data or profits. By using this software you agree to indemnify the author from any liability that might arise from it is use. Should this code prove defective, you assume the cost of any and all necessary repairs, servicing, correction and any other costs arising directly or indrectly from it is use.
 
 The copyright notice must remain fully intact at all times. Use of this software or its output, constitutes acceptance of these terms.
+
+
+
+
+

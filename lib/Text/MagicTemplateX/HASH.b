@@ -1,10 +1,11 @@
 # behaviour extension
-# Text::MagicTemplate distribution version 2.11
+# Text::MagicTemplate distribution version 2.2
 
 
 sub
 {
     my ($s, $z) = @_;
-    ref $z->value eq 'HASH'
-    && $s->parse($z)
+    if (ref $z->value eq 'HASH') { ${$s->parse($z)} }
+    else { undef }
 }
+

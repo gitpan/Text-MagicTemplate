@@ -1,10 +1,14 @@
 # behaviour extension
-# Text::MagicTemplate distribution version 2.11
+# Text::MagicTemplate distribution version 2.2
 
 
 sub
 {
     my ($s, $z) = @_;
-    ref $z->value eq 'ARRAY'
-    && join '', map {$s->apply_behaviour($z->value($_))} @{$z->value}
+    if (ref $z->value eq 'ARRAY')
+    {
+        join '', map {$s->apply_behaviour($z->value($_))} @{$z->value}
+    }
+    else { undef }
 }
+

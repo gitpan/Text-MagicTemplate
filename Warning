@@ -37,25 +37,46 @@ Static get_block() and set_block() are now object methods
 
 
 ================================
-For code based on version < 2.05
+For code based on version < 2.1
 ================================
 
-Another very little change has been introduced in version 2.1 too. This could 
-affect your code based on 2.05 ONLY if you was using your own custom behaviours 
-OR lookups in subroutines.
+Another very little change has been introduced in version 2.1 too. This could
+affect your code based on previous versions ONLY if you was using your own 
+custom behaviours OR lookups in subroutines.
 
-The new Text::MagicTemplate::Zone object has been introduced. Now all your subs 
+The new Text::MagicTemplate::Zone object has been introduced. Now all your subs
 triggered by a lookup and all the behaviours receive as a parameter a single ref
 to the object.
-You can access all the old parameters related to the zone by using the object 
+You can access all the old parameters related to the zone by using the object
 methods:
 
       $z->id
       $z->content
       $z->attributes
       $z->value
-      $z->lookup_element
+      $z->location (that substitute the deprecated $z->lookup_element)
+      $z->container
+
+================================
+For code based on version < 2.2
+================================
+
+If you was using a custom behaviour, be sure that it is write in the form:
+
+sub {
+    if (condition_that_apply) { do_something }
+    else { undef }
+}
+
+The apply_behaviour method now check for a defined value, instead of a true
+value (that was the cause of a silly '0' bug).
+In case the 'condition_that_apply' is false, the behaviour must return undef:
+without the 'else {undef}' line, the behaviour would return an empty string '',
+and that (with the new check) will cause the deletion of the zone from the 
+template.
 
 --
 Domizio Demichelis <dd@4pro.net>
-2003-08-29
+2003-09-17
+
+

@@ -1,15 +1,19 @@
 # behaviour extension
-# Text::MagicTemplate distribution version 2.11
+# Text::MagicTemplate distribution version 2.2
 
 
 sub
 {
     my ($s, $z) = @_;
-    if (ref $z->value eq 'CODE')
+    if ( ref $z->value eq 'CODE' )
     {
-		my $l = $z->lookup_element;
-        $z->value( !ref $l || ref $l eq 'HASH' ? $z->value->($z)
-		: $z->value->($l, $z) );
-        $s->apply_behaviour($z)
+        my $v = $z->value;
+        my $l = $z->location;
+        if (!ref $l or ref $l eq 'HASH') { $z->value($z->value->($z)) }
+        else                             { $z->value($z->value->($l, $z)) }
+        $v ne $z->value ? $s->apply_behaviour($z) : undef
     }
+     else { undef }
 }
+
+

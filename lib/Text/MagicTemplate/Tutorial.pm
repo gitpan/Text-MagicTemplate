@@ -1,5 +1,5 @@
 package Text::MagicTemplate::Tutorial;
-$VERSION = 2.11;
+$VERSION = 2.2;
 __END__
 
 =head1 NAME
@@ -28,15 +28,17 @@ The file will be included in place of the label and if it is a template, it will
 
 =item by explicitly define the -markers constructor parameter
 
-    $mt = new Text::MagicTemplate { -markers => [qw(<- / ->)] }; # redefine the markers as needed
+    # redefine the markers as needed
+    $mt = new Text::MagicTemplate { -markers => [qw( <- / -> ) ] };
 
 =item by using a markers extension
 
 The standard installation comes with a HTML friendly markers extension that implements a HTML-comment-like syntax. If your output is an HTML text - or just because you prefer that particular look - you can use it instead of using the default markers.
 
     $mt = new Text::MagicTemplate { -markers => 'HTML' };
+    
     # that means
-    $mt = new Text::MagicTemplate { -markers => [qw(<!-- / -->)] };
+    $mt = new Text::MagicTemplate { -markers => [qw( <!-- / --> ) ] };
 
 =item by creating a new markers extension
 
@@ -44,7 +46,7 @@ If you need some custom and permanent solution you can create your own syntax ex
 
 Redefine the markers and save this code as the file F<'myCustomMarkers.m'>:
 
-    [ qw(__ END_ __) ]; # redefine these values as needed
+    [ qw( __ END_ __ ) ]; # redefine these values as needed
 
 If you save it into the Text::MagicTemplateX directory, you can use it by loading the extension as usual:
 
@@ -96,8 +98,10 @@ These are a couple of templates that use a HTML friendly sintax (implemented in 
 
 =item template without placeholders
 
-    <p><hr>Name: <b style="color:blue"><!--{name}--></b><br>
-    Surname: <b style="color:blue"><!--{surname}--></b><hr></p>
+    <p><hr>
+    Name: <b style="color:blue"><!--{name}--></b><br>
+    Surname: <b style="color:blue"><!--{surname}--></b>
+    <hr></p>
 
 This is what you would see in a WYSIWYG editor: I<(you should be using a browser to see the example below this line)>
 
@@ -109,8 +113,10 @@ Surname: <b style="color:blue"><!--{surname}--></b><hr></p>
 
 The placeholders "John" and "Smith" are included in blocks and will be replaced by the actual values of 'name' and 'surname' from your code.
 
-    <p><hr>Name: <b style="color:blue"><!--{name}-->John<!--{/name}--></b><br>
-    Surname: <b style="color:blue"><!--{surname}-->Smith<!--{/surname}--></b><hr></p>
+    <p><hr>
+    Name: <b style="color:blue"><!--{name}-->John<!--{/name}--></b><br>
+    Surname: <b style="color:blue"><!--{surname}-->Smith<!--{/surname}--></b>
+    <hr></p>
 
 This is what you would see in a WYSIWYG editor: I<(you should be using a browser to see the example below this line)>
 
@@ -124,7 +130,8 @@ Surname: <b style="color:blue"><!--{surname}-->Smith<!--{/surname}--></b><hr></p
 
 If you want to include in your template some area only for design purpose I<(for example to see, right in the template, how could look a large nested loop)>, just transform it into a block and give it an identifier that will never be defined in your code.
 
-    {my_simulated_area}this block simulates a possible output and it will never generate any output{/my_simulated_area}
+    {my_simulated_area} this block simulates a possible output 
+    and it will never generate any output {/my_simulated_area}
 
 =head2 Setup labeled areas
 
@@ -138,7 +145,9 @@ If you want to label some area in your template I<(for example to extract the ar
 
 =item the template
 
-    {my_labeled_area}this block will always generate an output{/my_labeled_area}
+    {my_labeled_area}
+    this block will always generate an output 
+    {/my_labeled_area}
 
 =back
 
@@ -160,10 +169,16 @@ A loop is represented by a block, usually containing labels:
 
 You should have some array of hashes (or a reference to) defined somewhere:
 
-    $my_loop = [
-                 { date => '8-2-02', operation => 'purchase' },
-                 { date => '9-3-02', operation => 'payment' }
-               ] ;
+    $my_loop = [ 
+                  { 
+                      date      => '8-2-02',
+                      operation => 'purchase' 
+                  },
+                  { 
+                      date      => '9-3-02', 
+                      operation => 'payment' 
+                  }
+                ] ;
 
 =item the output
 
@@ -206,17 +221,30 @@ You should have some array nested into some other array, defined somewhere:
                             date      => '8-2-02',
                             operation => 'purchase',
                             details   => [
-                                            {quantity => 5, item => 'balls'},
-                                            {quantity => 3, item => 'cubes'},
-                                            {quantity => 6, item => 'cones'}
+                                            {
+                                               quantity => 5, 
+                                               item     => 'balls'
+                                             },
+                                             {
+                                               quantity => 3, 
+                                               item     => 'cubes'
+                                             },
+                                             {
+                                               quantity => 6,
+                                               item     => 'cones'
+                                             }
                                          ]
                          },
                          {
                             date      => '9-3-02',
                             operation => 'payment',
                             details   => [
-                                            {quantity => 2, item => 'cones'},
-                                            {quantity => 4, item => 'cubes'}
+                                            {
+                                               quantity => 2,
+                                               item     => 'cones'
+                                             },
+                                             { quantity => 4,
+                                               item     => 'cubes'}
                                          ]
                           }
                       ] ;
@@ -298,7 +326,8 @@ A simple switch (if-elsif-elsif) condition is represented with multiple blocks:
 Your code will determine what block will generate output (defined identifier) and what not (undefined identifier). In the following example, value of C<$type>  will determine what block will produce output, then the next line will define C<$type_C> using a symbolic reference:
 
     $type  = 'type_C';
-    $$type = { a_scalar_1 => 'THE SCALAR 1', a_scalar_2 => 'THE SCALAR 2' };
+    $$type = { a_scalar_1 => 'THE SCALAR 1', 
+               a_scalar_2 => 'THE SCALAR 2' };
 
 Same thing yet but with a different programming style:
 
@@ -309,8 +338,9 @@ Same thing yet but with a different programming style:
 
 Same thing without using any symbolic reference:
 
-    $type       = 'type_D';
-    $my_hash{$type} = { a_scalar_1 => 'THE SCALAR 1', a_scalar_2 => 'THE SCALAR 2' };
+    $type           = 'type_D';
+    $my_hash{$type} = { a_scalar_1 => 'THE SCALAR 1', 
+                        a_scalar_2 => 'THE SCALAR 2' };
     $mt = new Text::MagicTemplate { -lookups => \%my_hash };
 
 =item the output
@@ -327,9 +357,9 @@ A C<$type> set to 'type_D' would produce this output:
 
 =head2 Pass parameters to a subroutine
 
-Text::MagicTemplate can execute subroutines from your code: when you use a zone identifier that matches with a subroutine identifier, the subroutine will receive the I<zone object> as parameters and will be executed. This is very useful when you want to return a modified copy of the template content itself, or if you want to allow the designer to pass parameter to the subroutines.
+Text::MagicTemplate can execute subroutines from your code: when you use a zone identifier that matches with a subroutine identifier, the subroutine will receive the I<zone object> as a parameters and will be executed. This is very useful when you want to return a modified copy of the template content itself, or if you want to allow the designer to pass parameter to the subroutines.
 
-This example show you how to allow the designer to pass some parameters to a subroutine in your code.
+This example show you how to allow the designer to pass some parameters to a subroutine in your code. The 'matrix' sub, used in the example, receives the parameters written in the template and generates just a table filled of 'X'.
 
 =over
 
@@ -375,7 +405,7 @@ The attributes string of 'matrix' label (' columns => 5, rows => 3') is used as 
     sub matrix
     {
         my ($zone) = shift;
-        my $attributes = $zone->attributes; 
+        my $attributes = $zone->attributes;
         $attributes =~ tr/ //d; # no spaces
         my %attr = split /=>|,/, $attributes; # split the parameters
         my $out;
@@ -405,9 +435,14 @@ Then a simple C<modify_link> subroutine - defined in your program - will return 
 
 =item the template
 
-    <p><a href="<!--{modify_link}-->add.html<!--{/modify_link}-->">Add Item</a></p>
-    <p><a href="<!--{modify_link}-->update.html<!--{/modify_link}-->">Update Item</a></p>
-    <p><a href="<!--{modify_link}-->delete.html<!--{/modify_link}-->">Delete Item</a></p>
+    <p><a href="<!--{modify_link}-->add.html<!--{/modify_link}-->">Add Item
+    </a></p>
+    <p>
+    <a href="<!--{modify_link}-->update.html<!--{/modify_link}-->">Update Item
+    </a></p>
+    <p>
+    <a href="<!--{modify_link}-->delete.html<!--{/modify_link}-->">Delete Item
+    </a></p>
 
 Working links pointing to static templates files (useful for testing and preview purpose, without passing through the program)
 
@@ -416,7 +451,7 @@ Working links pointing to static templates files (useful for testing and preview
     sub modify_link
     {
         my ($zone) = shift;
-        my ($content) = $zone->content; 
+        my ($content) = $zone->content;
         $content =~ m|([^/]*).html$|;
         return '/path/to/myprog.cgi?action='.$content;
     }
@@ -470,7 +505,9 @@ This module can execute the subroutines of your code whenever it matches a label
     sub my_potentially_dangerous_sub { unlink 'database_file' };
     $name = 'John';
     $surname = 'Smith';
-    $mt = new Text::MagicTemplate ; # automatic lookup in __PACKAGE__ namespace
+    
+    # automatic lookup in __PACKAGE__ namespace
+    $mt = new Text::MagicTemplate ; 
 
 With this code, a malicious person allowed to edit the template could add the label I<{my_potentially_dangerous_sub}> in the template and that label would trigger the deletion of 'database_file'.
 
@@ -478,17 +515,51 @@ With this code, a malicious person allowed to edit the template could add the la
 
 Just explicitly omit the 'CODE' behaviour when you create the object, so no sub will be executed:
 
-     $mt = new Text::MagicTemplate { -behaviours => [qw(SCALAR REF ARRAY HASH)] };
+     $mt = new Text::MagicTemplate { -behaviours => [ qw( SCALAR
+                                                          REF
+                                                          ARRAY
+                                                          HASH   ) ] };
 
 =item code with restricted lookups
 
     sub my_potentially_dangerous_sub { unlink 'database_file' };
     %my_restricted_hash = ( name => 'John', surname => 'Smith' );
-    $mt = new Text::MagicTemplate {-lookups => \%my_restricted_hash } ; # lookup in %my_restricted_hash only
+    
+    # lookup in %my_restricted_hash only
+    $mt = new Text::MagicTemplate {-lookups => \%my_restricted_hash };
 
 With this code the lookup is restricted to just the identifiers used in the template, thus the subroutine C<my_potentially_dangerous_sub> is unavailable to the outside world. (see C<new()> method).
 
 =back
+
+=head2 Cache in memory the template content
+
+If you need to have a copy of the template content in memory (that sometimes might be a good idea under mod_perl), you should make a copy before to pass it as a reference (remember if you pass a reference to a SCALAR content, the template content itself will be merged in place for efficiency). For example:
+
+    use Text::MagicTemplate;
+    our ( $mt, $tpl_content );
+    
+     # load extensions just the first time
+    $mt = new Text::MagicTemplate unless $mt;
+    
+    # load the template file just the first time
+    unless ($tpl_content) 
+    {
+        open TEMPLATE, '/pat/to/template';
+        $tpl_content = do{local $/; <TEMPLATE>};
+    }
+    
+    # make a copy of the content
+    my $t = $tpl_content;
+    
+    # merge content directly in $t
+    # leaving unmodified $tpl_content 
+    my $output = $mt->output( \$t ) ;
+    
+    # the 2 following lines will print  the same
+    print $$output;
+    print $t
+    
 
 =head2 Embed perl into a template
 
@@ -521,6 +592,18 @@ Note that the default syntax markers ({/}) could somehow clash with perl blocks,
 
 =back
 
+=head1 SEE ALSO
+
+=item * L<Text::MagicTemplate|Text::MagicTemplate>
+
+=item * L<Text::MagicTemplate::Zone|Text::MagicTemplate::Zone>
+
+=item * L<Text::MagicTemplateX|Text::MagicTemplateX>
+
+=item * L<Text::MagicTemplate::Core|Text::MagicTemplate::Core>
+
+=item * L<Text::MagicTemplateX::HTML|Text::MagicTemplateX::HTML>
+
 =head1 SUPPORT and FEEDBACK
 
 I would like to have just a line of feedback from everybody who tries or actually uses this module. PLEASE, write me any comment, suggestion or request. ;-)
@@ -540,3 +623,7 @@ This software may not be modified without first notifying the author (this is to
 This code is provided on an "As Is'' basis, without warranty, expressed or implied. The author disclaims all warranties with regard to this software, including all implied warranties of merchantability and fitness, in no event shall the author, be liable for any special, indirect or consequential damages or any damages whatsoever including but not limited to loss of use, data or profits. By using this software you agree to indemnify the author from any liability that might arise from it is use. Should this code prove defective, you assume the cost of any and all necessary repairs, servicing, correction and any other costs arising directly or indrectly from it is use.
 
 The copyright notice must remain fully intact at all times. Use of this software or its output, constitutes acceptance of these terms.
+
+
+
+

@@ -1,5 +1,5 @@
 package Text::MagicTemplateX::Core;
-$VERSION = 2.11;
+$VERSION = 2.2;
 __END__
 
 =head1 NAME
@@ -9,14 +9,20 @@ Text::MagicTemplateX::Core - Core extensions for Text::MagicTemplate.
 =head1 SYNOPSIS
 
     $mt = new Text::MagicTemplate;
+    
     # that means
     $mt = new Text::MagicTemplate { -markers    => 'DEFAULT',
                                     -behaviours => 'DEFAULT' };
     # that explicitly means
-    $mt = new Text::MagicTemplate { -markers    => [qw({ / })],
-                                    -behaviours => [qw(SCALAR REF CODE ARRAY HASH)] };
+    $mt = new Text::MagicTemplate { -markers    => [ qw( { / } ) ],
+                                    -behaviours => [ qw( SCALAR
+                                                         REF
+                                                         CODE
+                                                         ARRAY
+                                                         HASH   ) ] };
     # with _EVAL_ behaviour
-    $mt = new Text::MagicTemplate { -behaviours => [qw(DEFAULT _EVAL_)] };
+    $mt = new Text::MagicTemplate { -behaviours => [ qw( DEFAULT _EVAL_ ) ] };
+    
     # with HTML comment-like markers
     $mt = new Text::MagicTemplate { -markers    => 'HTML' };
 
@@ -39,7 +45,7 @@ L<Text::MagicTemplate::Tutorial|Text::MagicTemplate::Tutorial>
 
 =item *
 
-L<Text::MagicTemplateXl|Text::MagicTemplateX>
+L<Text::MagicTemplateX>
 
 =back
 
@@ -107,7 +113,11 @@ See also L<Redefine Markers|Text::MagicTemplate::Tutorial/"Redefine Markers">
 
 This is the shortcut for the default collection of behaviour extensions that defines the following behaviours:
 
-    SCALAR REF CODE ARRAY HASH
+    SCALAR
+    REF
+    CODE
+    ARRAY
+    HASH
 
 All the default values are based on a condition that check the found value.
 
@@ -198,7 +208,10 @@ code execution and C<apply_behaviour> method with the returned value. The subrou
 
 If you want to avoid the execution of subs, triggered by some identifier, just explicitly omit this behaviour:
 
-    $mt = new Text::MagicTemplate { -behaviours => [qw(SCALAR REF ARRAY HASH)] };
+    $mt = new Text::MagicTemplate { -behaviours => [ qw( SCALAR
+                                                         REF
+                                                         ARRAY
+                                                         HASH   ) ] };
 
 See L<Avoid unwanted executions|Text::MagicTemplate::Tutorial/"Avoid unwanted executions"> for details. See also L<Pass parameters to a subroutine|Text::MagicTemplate::Tutorial/"Pass parameters to a subroutine">
 
@@ -266,7 +279,15 @@ B<WARNING>: Since the result of the eval() will be passed to the C<apply_behavio
 
 =head1 SEE ALSO
 
-L<Text::MagicTemplate|Text::MagicTemplate>, L<Text::MagicTemplate::Tutorial|Text::MagicTemplate::Tutorial>, L<Text::MagicTemplateX|Text::MagicTemplateX>, L<Text::MagicTemplateX::HTML|Text::MagicTemplateX::HTML>.
+=item * L<Text::MagicTemplate|Text::MagicTemplate>
+
+=item * L<Text::MagicTemplate::Zone|Text::MagicTemplate::Zone>
+
+=item * L<Text::MagicTemplate::Tutorial|Text::MagicTemplate::Tutorial>
+
+=item * L<Text::MagicTemplateX|Text::MagicTemplateX>
+
+=item * L<Text::MagicTemplateX::HTML|Text::MagicTemplateX::HTML>
 
 =head1 SUPPORT and FEEDBACK
 
@@ -287,3 +308,5 @@ This software may not be modified without first notifying the author (this is to
 This code is provided on an "As Is'' basis, without warranty, expressed or implied. The author disclaims all warranties with regard to this software, including all implied warranties of merchantability and fitness, in no event shall the author, be liable for any special, indirect or consequential damages or any damages whatsoever including but not limited to loss of use, data or profits. By using this software you agree to indemnify the author from any liability that might arise from it is use. Should this code prove defective, you assume the cost of any and all necessary repairs, servicing, correction and any other costs arising directly or indrectly from it is use.
 
 The copyright notice must remain fully intact at all times. Use of this software or its output, constitutes acceptance of these terms.
+
+

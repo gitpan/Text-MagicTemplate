@@ -1,10 +1,12 @@
 # behaviour extension
-# Text::MagicTemplate distribution version 2.11
+# Text::MagicTemplate distribution version 2.2
 
 
 sub
 {
     my ($s, $z) = @_;
-    !ref $z->value
-    && $z->value
+    if (!ref $z->value) { $z->value }
+    else { undef }
 }
+
+
