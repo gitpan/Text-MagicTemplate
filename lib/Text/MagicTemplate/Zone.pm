@@ -1,5 +1,5 @@
 package Text::MagicTemplate::Zone ;
-$VERSION = 3.1                    ;
+$VERSION = 3.12                   ;
 use 5.005                         ;
 use strict                        ;
 our $AUTOLOAD                     ;
@@ -105,7 +105,7 @@ __END__
 
 Text::MagicTemplate::Zone - The Zone object
 
-=head1 VERSION 3.1
+=head1 VERSION 3.12
 
 =head1 DESCRIPTION
 

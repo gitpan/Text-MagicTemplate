@@ -1,5 +1,5 @@
 package Text::MagicTemplate   ;
-$VERSION = 3.11               ;
+$VERSION = 3.12               ;
 use 5.005                     ;
 use Carp qw ( croak )         ;
 use strict                    ;
@@ -375,7 +375,7 @@ sub ID_list
 
 Text::MagicTemplate - magic merger of runtime values with templates
 
-=head1 VERSION 3.11
+=head1 VERSION 3.12
 
 =head1 WARNING!
 
