@@ -4,7 +4,7 @@ Text::MagicTemplate README File
 Description
 -----------
 
-MagicTemplate is an "magic" interface between programming and design. It makes
+MagicTemplate is a "magic" interface between programming and design. It makes
 "magically" available all the runtime values - stored in your variables or
 returned by your subroutines - inside a static template file. Usually no need to
 assign values to the object.

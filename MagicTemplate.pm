@@ -1,5 +1,5 @@
 package Text::MagicTemplate;
-$VERSION = '1.0';
+$VERSION = '1.1';
 use Carp qw ( croak );
 use strict; no strict "refs";
 
@@ -40,8 +40,8 @@ sub get_block
     my ($type, $temp, $id) = @_;
     my $c = ref $type || $type;
     if (ref $temp) { $temp = $$temp }
-    else               { open INP, $temp or croak "Error opening template file \"$temp\" ($!)";
-                         undef $/; $temp = <INP>; $/="\n"; close INP; }
+    else           { open INP, $temp or croak "Error opening template file \"$temp\" ($!)";
+                     undef $/; $temp = <INP>; $/="\n"; close INP; }
     $temp =~ s/${$c.'::_START'}('|")(.*?)\1${$c.'::_END'}/${$c->get_block($2)}/gse;   # include
     if ($id) { ($temp) = $temp =~ m|(${$c.'::_START'}$id.*?${$c.'::_END'}.*?${$c.'::_START'}${$c.'::_END_ID'}$id${$c.'::_END'})|s }
     \$temp;
@@ -73,7 +73,7 @@ sub _lookup
         if (not ref $location)
         {
             local *sym = '*'.$location.'::'.$id;
-            if    (defined &{*sym} and ${ref ($s).'::_CODE_EXECUTION'}) { return $s->_value ($content, &{*sym}) }
+            if    (defined &{*sym} and ${ref ($s).'::_CODE_EXECUTION'}) { return $s->_value ($content, &{*sym}($content)) }
             elsif (defined ${*sym}) { return $s->_value ($content, ${*sym}) }
             elsif (defined @{*sym}) { return $s->_loop  ($content, \@{*sym}) }
             elsif (defined %{*sym}) { return $s->_block ($content, \%{*sym}) }
@@ -87,7 +87,7 @@ sub _lookup
 sub _value
 {
     my ($s, $content, $value) = @_;
-    if    (ref $value eq 'CODE' and ${ref ($s).'::_CODE_EXECUTION'})  { return $s->_value ($content, &$value) }
+    if    (ref $value eq 'CODE' and ${ref ($s).'::_CODE_EXECUTION'})  { return $s->_value ($content, &$value($content)) }
     elsif (not ref $value)        { return $value }
     elsif (ref $value eq 'SCALAR'){ return $$value }
     elsif (ref $value eq 'ARRAY') { return $s->_loop  ($content, $value) }
