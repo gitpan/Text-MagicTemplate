@@ -1,10 +1,8 @@
-## 13
-
 use Test;
 use Text::MagicTemplate;
 BEGIN {  plan tests => 1 }
 
-$mt = new Text::MagicTemplate;
+$mt = new Text::MagicTemplate ;
 $tmp = 'A nested loop:{my_nested_loop}|Date: {date} - Operation: {operation} - Details:{details} - {quantity} {item}{/details} - {/my_nested_loop}|';
 
 $my_nested_loop = [
@@ -39,6 +37,6 @@ my_nested_loop:
 /my_nested_loop: 
 __EOS__
 
-$mt->set_ID_output;
+Text::MagicTemplate->set_ID_output(1);
 $content = $mt->output(\$tmp);
 ok($$content."\n", $espected);

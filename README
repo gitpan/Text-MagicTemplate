@@ -1,6 +1,7 @@
 Text::MagicTemplate README File
 ===============================
 
+
 Description
 -----------
 
@@ -8,6 +9,22 @@ MagicTemplate is a "magic" interface between programming and design. It makes
 "magically" available all the runtime values - stored in your variables or
 returned by your subroutines - inside a static template file. Usually no need to
 assign values to the object.
+
+
+Structure
+---------
+
+This is the general three of the Text::MagicTemplate system (just in case you get lost :-) )
+
+    Text
+        MagicTemplate   the main module (start from here)
+            Tutorial    the tutorial (very useful)
+            Utilities   used internally (don't worry about it)
+        MagicTemplateX  extensions namespace (documentation for power users)
+            Core        core extensions collection
+            HTML        HTML extensions collection
+    HTML
+        MagicTemplate   wrapper for Text::MagicTemplate in HTML environment
 
 
 Installation
@@ -28,15 +45,7 @@ Installation
 
 2. Manual installation
 - if your OS does not have any 'make' support, just copy the
-modules and the pod files:
-
-./MagicTemplate.pm  /perl/site/lib/Text/MagicTemplate.pm
-./MagicTemplate.pod  /perl/site/lib/Text/MagicTemplate.pod
-./MagicTemplate/HTML.pm  /perl/site/lib/Text/MagicTemplate/HTML.pm
-./MagicTemplate/HTML.pod  /perl/site/lib/Text/MagicTemplate/HTML.pod
-./MagicTemplate/Utilities.pm  /perl/site/lib/Text/MagicTemplate/Utilities.pm
-./MagicTemplate/Utilities.pod  /perl/site/lib/Text/MagicTemplate/Utilities.pod
-
+content of the /lib dir into perl installation site dir, maintaining the same hierarchy
 
 --
 Domizio Demichelis <dd@4pro.net>

@@ -1,0 +1,36 @@
+CHANGES THAT COULD BREAK YOUR OLD CODE
+======================================
+
+Starting with version 2.0, a few critical changes (that could break your old
+code based on versions < 2.0) have been introduced. You can maintain your old
+code whether adapting it to the new style (very easy job to do), or using the
+old 1.31 version.
+
+Object creation
+    - The new method accept a unique optional HASH reference containing the
+      following optional constructor arrays: -markers, -lookups, -behaviours
+
+Locations
+    - locations are now passed as an ARRAY reference under the constructor array
+      "-lookups" (see new())
+
+Syntax
+    - Syntax is an object property now, (before, it was a class property)
+    - syntax() method desn't exist any more
+    - Custom syntax is now passed as an ARRAY reference under the constructor
+      array "-markers" or as a markers extension name
+    - see default_markers() private method to do the same inside a subclass, and
+      new() method
+
+Subs execution
+    - Subs_execution method desn't exist any more, nor the old deprecated
+      methods that were doing the same
+    - to avoid subs execution, just explicitly omit the 'CODE' behaviour when
+      create a new object:
+      $mt=new Text::MagicTemplate{-behaviours=>[qw(SCALAR REF ARRAY HASH)]}
+
+Static get_block() and set_block() are now object methods
+
+--
+Domizio Demichelis <dd@4pro.net>
+2002-11-10
