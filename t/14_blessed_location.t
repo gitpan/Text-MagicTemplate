@@ -17,7 +17,7 @@ sub new
 sub method
 {
 	my $s = shift;
-	$s->method_2(shift);
+	$s->method_2(shift()->content);
 }
 
 sub method_2

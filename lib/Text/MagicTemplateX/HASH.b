@@ -1,6 +1,6 @@
 sub
 {
-    my ($s, $z, $v, $l) = @_;
-    ref $v eq 'HASH'
-    && $s->parse($z->{content}, $v)
+    my ($s, $z) = @_;
+    ref $z->value eq 'HASH'
+    && $s->parse($z)
 }

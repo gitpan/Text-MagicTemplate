@@ -30,11 +30,12 @@ t/09_passing_values_to_subs.t
 t/10_subs_execution_off.t
 t/11_HTML_markers.t
 t/12_blocks_managements.t
-t/13_ID_output.t
+t/13_ID_list.t
 t/14_blessed_location.t
 t/15_mixed_locations.t
 t/16_EVAL_behaviour.t
 t/17_custom_behaviour.t
+t/18_attributes_syntax.t
 t/included_test_01
 t/included_test_02
 t/template_test_01

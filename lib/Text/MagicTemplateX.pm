@@ -1,5 +1,5 @@
 package Text::MagicTemplateX;
-$VERSION = 1.05;
+$VERSION = 2.1;
 __END__
 
 =head1 NAME
@@ -92,83 +92,51 @@ The callback subroutine will receive the following parameters:
 
 =item * $_[0]
 
-the B<magic template object> ref: used to execute object methods, if you need to.
+the B<magic template object> reference: used to execute object methods. (see L<PRIVATE METHODS>)
 
 =item * $_[1]
 
-the B<template zone> hash ref, that allows you to access:
-
-=over
-
-=item * $_[1]->{id}
-
-the B<zone identifier>
-
-=item * $_[1]->{attributes}
-
-the B<attributes string>
-
-=item * $_[1]->{content}
-
-the B<zone content>
+the B<zone object> reference, used to access the zone methods. (see L<ZONE OBJECT METHODS>)
 
 =back
 
-=item * $_[2]
+The callback subroutine may use or ignore the received parameter, in order to setup the condition and generate the output.
 
-the B<found value>: since in perl it's impossible to pass multiple values with just one parameter, if the found value is a SCALAR or a REFERENCE it is passed as is in the $_[2] parameter; if it is anything else, it is passed as a reference. For example:
-
-    found values          $_[2] content
-    ------------------------------------
-    'SCALAR'              'SCALAR'
-    (1..5)                [1..5]
-    [1..5]                [1..5]
-    (key=>'value')        {key=>'value'}
-    {key=>'value'}        {key=>'value'}
-    ------------------------------------
-
-=item * $_[3]
-
-the B<lookup element>: the element of the C<-lookups> constructor array where the value ($_[2]) is found. (see L<Text::MagicTemplate/-lookups> for details)
-
-
-=back
-
-The fallback subroutine may use or ignore the received parameter, in order to setup the condition and generate the output. See these examples:
+See these examples:
 
 =over
 
 =item SCALAR (Core behaviour)
 
-This sub returns the found value ($_[2] or $v), if it is not a reference (SCALAR), and ignores all other passed paramenter
+This sub returns the found value ($z->value), if it is not a reference (SCALAR), and ignores all other passed paramenter
 
     sub
     {
-        my ($s, $z, $v, $l) = @_;
-        !ref $v
-        && $v
+        my ($s, $z) = @_;
+        !ref $z->value
+        && $z->value
     }
 
 =item HASH (Core behaviour)
 
-This sub pass the zone content ($z->{content}) and the found value ($v) to the object ($s) C<parse> method, if the found value is a reference to HASH.
+This sub pass the zone object ($z) to the object ($s) C<parse> method, if the found value is a reference to HASH.
 
     sub
     {
-        my ($s, $z, $v, $l) = @_;
-        ref $v eq 'HASH'
-        && $s->parse($z->{content}, $v)
+        my ($s, $z) = @_;
+        ref $z->value eq 'HASH'
+        && $s->parse($z)
     }
 
 =item _EVAL_ (Core behaviour)
 
-This sub pass the I<zone>, the evalued I<zone content> and the I<lookup element> to the object C<apply_behaviour> method, if the I<zone identifier> is equal to '_EVAL_'.
+This sub set the value of the zone to the evaluated content and pass the ref to the zone object to the object C<apply_behaviour> method, if the I<zone identifier> is equal to '_EVAL_'.
 
     sub
     {
-        my ($s, $t, $v, $l) = @_;
-        $t->{id} eq '_EVAL_'
-        && $s->apply_behaviour($z, eval $t->{content}, $l)
+        my ($s, $z) = @_;
+        $z->id eq '_EVAL_'
+        && $s->apply_behaviour($z->value(eval $z->content))
     }
 
 =item TableTiler (Text::MagicTemplateX::HTML behaviour)
@@ -179,12 +147,12 @@ When included with the do() statement, this I<behaviour extension> loads L<HTML:
 
     sub
     {
-        my ($s, $t, $v, $l) = @_;
-        ref $v eq 'ARRAY'
+        my ($s, $z) = @_;
+        ref $z->value eq 'ARRAY'
         && eval
         {
             local $SIG{__DIE__};
-            HTML::TableTiler::tile_table( $v, $t->{content} && \$t->{content}, $t->{attributes} )
+            HTML::TableTiler::tile_table( $z->value, $z->content && \$z->{content}, $z->{attributes} )
         }
     }
 
@@ -194,23 +162,53 @@ Check other behaviours files in the Text/MagicTemplateX dir in order to better u
 
 =head1 PRIVATE METHODS
 
-This is a brief documentation of the privates method you may need to use in order to write an extension. If you are planning to write any extension, please, feel free to ask me for additional support.
+This is a brief documentation of the privates method you may need to use in order to write an extension. If you are planning to do so, please, feel free to ask me for additional support.
 
-=item parse ( $self, $template_string, $found_value)
+=head2 parse ( self, zone )
 
 This method parses a template_string in order to find I<template zones>, calling the C<lookup> method each time a zone is found, thus generating the output relative to that template string.
 
-$self and $template_string are mandatory parameter; $found_value - if present - is used only as temporary lookup.
-
-=item lookup ( $self, $template_zone, $found_value )
+=head2 lookup ( self, zone )
 
 This method scans the C<-lookups> constructor array to found a value in the code, then it pass it to the C<apply_behaviour> method
 
-$self and $template_zone (a ref to a zone hash) are mandatory parameter; $found_value - if present - is used only as temporary lookup.
-
-=item apply_behaviour ( $self, $template_zone, $found_value, $lookup_element)
+=head2 apply_behaviour ( self, zone )
 
 This method is pratically a switch conditions that calls in turn each behaviour fallback subroutine, present in the C<-behaviour> constructor array, searching a true value to return to the caller.
+
+=head1 ZONE OBJECT METHODS
+
+Since 2.1 version, Text::MagicTemplate uses the Text::MagicTemplate::Zone objects to internally represent zones. A reference to the I<zone object> is passed as a parameter to each behaviour subroutine and is passed to your subroutines whenever an identifier trigger their execution.
+
+=head2 id ( [value] )
+
+The id() method allows you to access and set the B<zone identifier>.
+
+=head2 attributes ( [value] )
+
+The attributes() method allows you to access and set the B<attributes string>. This string contains everything between the end of the label IDENTIFIER and the END_LABEL marker.
+
+=head2 content ( [value] )
+
+The content() method allows you to access and set the B<zone content>
+
+
+=head2 value ( [value] )
+
+The value() method allows you to access and set the B<found value>: since in perl it's impossible to pass multiple values with just one parameter, if the found value is a SCALAR or a REFERENCE it is passed in the $z->value 'as is'; if it is anything else, it is passed as a reference. For example:
+
+    found values          value in $_[1]->value
+    ------------------------------------
+    'SCALAR'              'SCALAR'
+    (1..5)                [1..5]
+    [1..5]                [1..5]
+    (key=>'value')        {key=>'value'}
+    {key=>'value'}        {key=>'value'}
+    ------------------------------------
+
+=head2 lookup_element ( [value] )
+
+The lookup_element() method allows you to access and set the B<lookup element>: the element of the C<-lookups> constructor array where the value ($z->value) is found. (see L<Text::MagicTemplate/-lookups> for details)
 
 =head1 SEE ALSO
 
@@ -218,9 +216,9 @@ L<Text::MagicTemplate|Text::MagicTemplate>, L<Text::MagicTemplate::Tutorial|Text
 
 =head1 SUPPORT and FEEDBACK
 
-More information at http://perl.4pro.net/?Text::MagicTemplateX.
+I would like to have just a line of feedback from everybody who tries or actually uses this module. PLEASE, write me any comment, suggestion or request. ;-)
 
-I would like to have just a line of feedback from everybody who tries or actually uses this software. Feel free to write me any comment, suggestion or request.
+More information at http://perl.4pro.net/?Text::MagicTemplateX.
 
 =head1 AUTHOR
 

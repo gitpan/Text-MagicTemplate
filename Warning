@@ -1,6 +1,10 @@
 CHANGES THAT COULD BREAK YOUR OLD CODE
 ======================================
 
+===============================
+For code based on version < 2.0
+===============================
+
 Starting with version 2.0, a few critical changes (that could break your old
 code based on versions < 2.0) have been introduced. You can maintain your old
 code whether adapting it to the new style (very easy job to do), or using the
@@ -31,6 +35,27 @@ Subs execution
 
 Static get_block() and set_block() are now object methods
 
+
+================================
+For code based on version < 2.05
+================================
+
+Another very little change has been introduced in version 2.1 too. This could 
+affect your code based on 2.05 ONLY if you was using your own custom behaviours 
+OR lookups in subroutines.
+
+The new Text::MagicTemplate::Zone object has been introduced. Now all your subs 
+triggered by a lookup and all the behaviours receive as a parameter a single ref
+to the object.
+You can access all the old parameters related to the zone by using the object 
+methods:
+
+      $z->id
+      $z->content
+      $z->attributes
+      $z->value
+      $z->lookup_element
+
 --
 Domizio Demichelis <dd@4pro.net>
-2002-11-10
+2003-08-29

@@ -1,6 +1,6 @@
 sub
 {
-    my ($s, $z, $v, $l) = @_;
-    !ref $v
-    && $v
+    my ($s, $z) = @_;
+    !ref $z->value
+    && $z->value
 }

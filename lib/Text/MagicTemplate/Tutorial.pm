@@ -327,7 +327,7 @@ A C<$type> set to 'type_D' would produce this output:
 
 =head2 Pass parameters to a subroutine
 
-Text::MagicTemplate can execute subroutines from your code: when you use a block identifier that matches with a subroutine identifier, the subroutine will receive the I<content> and the I<attributes> of the block as parameters and will be executed. This is very useful when you want to return a modified copy of the template content itself, or if you want to allow the designer to pass parameter to the subroutines, or if you want to evaluate a perl expression inside the template.
+Text::MagicTemplate can execute subroutines from your code: when you use a zone identifier that matches with a subroutine identifier, the subroutine will receive the I<zone object> as parameters and will be executed. This is very useful when you want to return a modified copy of the template content itself, or if you want to allow the designer to pass parameter to the subroutines.
 
 This example show you how to allow the designer to pass some parameters to a subroutine in your code.
 
@@ -343,14 +343,14 @@ The content of 'matrix' block ('5,3') is used as parameter
 
     sub matrix
     {
-        my ($block_content, $attributes) = @_;
-        my ($column, $row) = split ',' , $block_content; # split the parameters
+        my ($zone) = @_;
+        my ($column, $row) = split ',' , $zone->content; # split the parameters
         my $out;
         for (0..$row-1) {$out .= 'X' x $column. "\n"};
         $out;
     }
 
-The sub 'matrix' receive the content of the template block, and return the output for the block
+The sub 'matrix' receive the reference to the I<zone object>, and return the output for the block
 
 =item the output
 
@@ -360,28 +360,30 @@ The sub 'matrix' receive the content of the template block, and return the outpu
 
 =back
 
-The same example could be written as follow:
+The same example with named parameters, could be written as follow:
 
 =over
 
 =item the template
 
-    {matrix 5 3}
+    {matrix columns => 5, rows => 3}
 
-The attributes of 'matrix' label ('5 3') is used as parameter
+The attributes string of 'matrix' label (' columns => 5, rows => 3') is used as parameter
 
 =item the code
 
     sub matrix
     {
-        my ($block_content, $attributes) = @_;
-        my ($column, $row) = split ' ' , $attributes; # split the parameters
+        my ($zone) = shift;
+        my $attributes = $zone->attributes; 
+        $attributes =~ tr/ //d; # no spaces
+        my %attr = split /=>|,/, $attributes; # split the parameters
         my $out;
-        for (0..$row-1) {$out .= 'X' x $column. "\n"};
+        for (0..$attr{rows}-1) {$out .= 'X' x $attr{columns} . "\n"};
         $out;
     }
 
-The sub 'matrix' receive the attributes of the template block, and return the output for the block
+The sub 'matrix' receive the reference to the I<zone object>, and return the output for the block
 
 =item the output
 
@@ -413,15 +415,17 @@ Working links pointing to static templates files (useful for testing and preview
 
     sub modify_link
     {
-        my ($behaviour) = shift =~ m|([^/]*).html$|;
-        return '/path/to/myprog.cgi?behaviour='.$behaviour;
+        my ($zone) = shift;
+        my ($content) = $zone->content; 
+        $content =~ m|([^/]*).html$|;
+        return '/path/to/myprog.cgi?action='.$content;
     }
 
 =item the output
 
-    <p><a href="/path/to/myprog.cgi?behaviour=add">Add Item</a></p>
-    <p><a href="/path/to/myprog.cgi?behaviour=update">Update Item</a></p>
-    <p><a href="/path/to/myprog.cgi?behaviour=delete">Delete Item</a></p>
+    <p><a href="/path/to/myprog.cgi?action=add">Add Item</a></p>
+    <p><a href="/path/to/myprog.cgi?action=update">Update Item</a></p>
+    <p><a href="/path/to/myprog.cgi?action=delete">Delete Item</a></p>
 
 Working links pointing to your program, defining different query strings.
 
@@ -437,7 +441,7 @@ If you have to pass to a webmaster the description of every identifier in your p
 
 =item 1 Add the following line anywhere before printing the output:
 
-    Text::MagicTemplate->set_ID_output;
+    Text::MagicTemplate->ID_list;
 
 =item 2 Capture the outputs of your program
 
@@ -453,7 +457,7 @@ Add the description of each label and block to the captured output and give it t
 
 F<MagicTemplate.pm> does not use any eval() statement, it just do a recursive search and replace with the content of the template. Besides, the allowed characters for identifiers are only alphanumeric C<(\w+)>, so even dealing with tainted templates should not raise any security problem that you wouldn't have in your program itself.
 
-However, since the module is just about 100 lines of code, you should consider to analise it directly. If you do this, please send me some feedback.
+However, since the module is just about 100 lines of code, you should consider to analyze it directly. If you do this, please send me some feedback.
 
 =head3 Avoid unwanted executions
 
@@ -519,9 +523,9 @@ Note that the default syntax markers ({/}) could somehow clash with perl blocks,
 
 =head1 SUPPORT and FEEDBACK
 
-More information at http://perl.4pro.net/?Text::MagicTemplate::Tutorial.
+I would like to have just a line of feedback from everybody who tries or actually uses this module. PLEASE, write me any comment, suggestion or request. ;-)
 
-I would like to have just a line of feedback from everybody who tries or actually uses this software. Feel free to write me any comment, suggestion or request.
+More information at http://perl.4pro.net/?Text::MagicTemplate::Tutorial.
 
 =head1 AUTHOR
 

@@ -4,7 +4,11 @@ Text::MagicTemplate - magic merger of runtime values with template
 
 =head1 WARNING!
 
-Starting with version 2.0, a few critical changes (that could break your old code based on versions < 2.0) have been introduced. You can maintain your old code whether adapting it to the new style (very easy job to do), or using the old 1.31 version. See F<Warning> file in this distribution for details.
+Starting with version 2.0, a few critical changes (that could break your old code based on versions < 2.0) have been introduced. 
+
+Another very little change has been introduced in version 2.1 too. This could affect your code based on 2.05 ONLY if you was using your own custom behaviours OR lookups in subroutines.
+
+You can maintain your old code whether adapting it to the new style (very easy job to do), or using an older compatible version (I hate this way :-(). See F<Warning> file in this distribution for details.
 
 =head1 SYNOPSIS
 
@@ -79,7 +83,7 @@ I<(in this example Lower case are from templates and Upper case are from code)>:
 
 =head2 Quick overview
 
-Text::MagicTemplate is a module that allows you to generate the output of your programs in a very easy way. The following is a very simple example only aimed to better understand how it works: obviously, the usefulness of Text::MagicTemplate comes up when the output became more complex.
+Text::MagicTemplate is a module that allows you to generate the output of your programs in a very easy way. The following is a very simple example only aimed to better understand how it works: obviously, the usefulness of Text::MagicTemplate comes up when the output become more complex.
 
 Imagine you need an output that looks like this template file:
 
@@ -156,7 +160,7 @@ When you need complex outputs you can build any immaginable nested loop, even mi
 
 =item * Scalable and expandable extensions system
 
-You can load only the behaviour you need, to gain speed, or you can add as many behaviour you will use, to gain features. You can even write your own behaviour extension in just 2 or 3 lines of code, expanding its capability for your own purpose. (see L<new() method|"new ( [constructor_arrays] )"> and eventually L<Text::MagicTemplateX>)
+You can load only the behaviour you need, to gain speed, or you can add as many behaviour you will use, to gain features. You can even write your own behaviour extension in just 2 or 3 lines of code, expanding its capability for your own purpose. (see L<new()|"new ( [constructor_arrays] )"> method and eventually L<Text::MagicTemplateX>)
 
 =item * Perl embedding
 
@@ -170,13 +174,17 @@ When you need complex management of templates files, you have a couple of static
 
 Placeholders and simulated areas can help in designing the template for a more consistent preview of the final output. (see L<Setup placeholders|Text::MagicTemplate::Tutorial/"Setup placeholders"> and L<Setup simulated areas|Text::MagicTemplate::Tutorial/"Setup simulated areas">)
 
+=item * Labels and block list
+
+When you have to deal with a webmaster, you can easily print a pretty formatted output of all the identifiers present in a template. Just add your description of each label and block and save hours of explanations ;-)  (see L<ID_list()|"ID_list ()"> static method)
+
 =item * Simple to maintain
 
 Change your code and Text::MagicTemplate will change its behaviour accordingly. In most cases you will not have to reconfigure, either the object, or the template.
 
 =item * Very lightweight
 
-F<MagicTemplate.pm> doesn't use any other module and its code is just about 100 lines I<(easier to write that this documentation :-) )>
+F<MagicTemplate.pm> doesn't use any other module and its core code is just about 100 lines I<(easier to write that this documentation :-) )>
 
 =back
 
@@ -212,7 +220,7 @@ The MagicTemplate ouput generation has 3 basic aspects internally handled by the
 
 =item 1 The object parse the template to find I<zones>
 
-Each I<zone> defines the area that will be replaced with the result of the I<behaviour>, and defines 3 parameter used by the object: an I<identifier> and otionals I<attributes> and I<content>.
+Each I<zone> defines the area that will be replaced with the result of the I<behaviour>, and defines 3 parameter used by the object: an I<identifier> and optional I<attributes> and I<content>.
 
 According to the default syntax, this is a minimum zone with no attributes and no content I<(a label)>:
 
@@ -524,21 +532,25 @@ This method sets the content of the block (or blocks) I<identifier> inside a I<t
 
 =head1 STATIC METHODS
 
-=head2 set_ID_output ()
+=head2 ID_list ()
 
-Calling this method will redefine the behaviour of the module, so your program will generate a pretty formatted output of only the identifiers present in the template. Thus the programmer can pass a description of each label and block within a template to a designer:
+Calling this method (before the L<output()|"output ( template [, identifier] )"> or L<print()|"print ( template [, identifier] )"> methods) will redefine the behaviour of the module, so your program will print a pretty formatted list of only the identifiers present in the template, thus the programmer can pass a description of each label and block within a template to a designer:
 
-    Text::MagicTemplate->set_ID_output(1);
+    Text::MagicTemplate->ID_list;
 
 See also L<Prepare the identifiers description list|Text::MagicTemplate::Tutorial/"Prepare the identifiers description list">.
+
+=head2 set_ID_output ()
+
+Deprecated method. Use ID_list() instead.
 
 =head1 SYNTAX GLOSSARY
 
 =over
 
-=item attributes
+=item attributes string
 
-The I<attributes> are alphanumeric words C<(\w+)> separated by a space that are optionally used to pass special parameters to the behaviour
+The I<attributes string> contains every character between the end of the label I<identifier> and the END_LABEL marker. This is optionally used to pass special parameters to the behaviour.
 
 =item behaviour
 
@@ -650,6 +662,10 @@ The type of the value found by a lookup (i.e. UNDEF, SCALAR, HASH, ARRAY, ...), 
 
 A I<zone> is an area in the template that must have an I<identifier>, may have some I<attributes> and may have a I<content>. A zone without any content is also called I<label>, while a zone with content is also called I<block>.
 
+=item zone object
+
+A I<zone object> is an internal object representing a zone.
+
 =back
 
 =head1 SEE ALSO
@@ -658,9 +674,9 @@ L<Text::MagicTemplate::Tutorial|Text::MagicTemplate::Tutorial>, L<Text::MagicTem
 
 =head1 SUPPORT and FEEDBACK
 
-More information at http://perl.4pro.net/?Text::MagicTemplate.
+I would like to have just a line of feedback from everybody who tries or actually uses this module. PLEASE, write me any comment, suggestion or request. ;-)
 
-I would like to have just a line of feedback from everybody who tries or actually uses this software. Feel free to write me any comment, suggestion or request.
+More information at http://perl.4pro.net/?Text::MagicTemplate.
 
 =head1 AUTHOR
 

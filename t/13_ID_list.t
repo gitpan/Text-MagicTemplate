@@ -37,6 +37,6 @@ my_nested_loop:
 /my_nested_loop: 
 __EOS__
 
-Text::MagicTemplate->set_ID_output(1);
+Text::MagicTemplate->ID_list;
 $content = $mt->output(\$tmp);
 ok($$content."\n", $espected);

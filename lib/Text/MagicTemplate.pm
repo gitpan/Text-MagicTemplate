@@ -1,5 +1,5 @@
 package Text::MagicTemplate;
-$VERSION = 2.05;
+$VERSION = 2.1;
 use 5.005;
 use Carp qw ( croak );
 use strict;
@@ -10,14 +10,14 @@ sub default_behaviours { [ 'DEFAULT' ] }
 sub new
 {
     my ($c, $s) = @_;
-    map { $s->{$_}      = [$s->{$_}] unless ref $s->{$_} eq 'ARRAY' } keys %$s;
+    for (values %$s){ $_ = [$_] unless ref eq 'ARRAY' }
     $s->{-markers}    ||= $c->default_markers;
     $s->{-behaviours} ||= $c->default_behaviours;
     $s->{-lookups}    ||= [ (caller)[0] ];
     $s->{-markers}      = do "Text/MagicTemplateX/$s->{-markers}[0].m"
                           or croak "Error opening markers extension: \"$s->{-markers}[0]\": $^E"
                           unless @{$s->{-markers}}==3 ;
-    $s->{-markers}      = [ map qr/$_/s, @{$s->{-markers}}, '(?:\s\w+)*', '\w+' ];
+    $s->{-markers}      = [ map qr/$_/s, @{$s->{-markers}}, '(?:(?!'.$s->{-markers}->[2].').)*', '\w+' ];
     $s->{-behaviours}   = [ $c->load_behaviours($s->{-behaviours}) ];
     bless $s, $c;
 }
@@ -66,32 +66,32 @@ sub output { \$_[0]->parse(${&get_block}) }
 
 sub print
 {
-	my $s = shift;
-	$s = $s->new( {-lookups => [ (caller)[0] ]} ) unless ref $s;
-	print ${$s->output(@_)}
+    my $s = shift;
+    $s = $s->new( {-lookups => [ (caller)[0] ]} ) unless ref $s;
+    print ${$s->output(@_)}
 }
 
 sub parse
 {
-    my ($s, $temp, $v) = @_;
+    my ($s, $z) = @_;
+    my $temp = ref $z ? $z->content : $z;
     my ($S, $I, $E, $A, $ID) = @{$s->{-markers}};
     $temp =~ s/ $S($ID)($A)$E  (?: ( (?: (?! $S\1$A$E) (?! $S$I\1$E) . )* )  $S$I\1$E  )?
-              /$s->lookup({ id=>$1, attributes=>$2 && substr($2,1), content=>$3 }, $v)/xgse ;
+              /$s->lookup( Text::MagicTemplate::Zone->new ($1, $2, $3, ref $z && $z))/xgse ;
     $temp;
 }
 
 sub lookup
 {
-    my ($s, $z, $v) = @_;
-    for ( $v || @{$s->{-lookups}} )
+    my ($s, $z) = @_;
+    for ( $z->_parent_value || @{$s->{-lookups}} )
     {
-        my $value = ref eq 'HASH' && $_->{$z->{id}}
-                    ?     $_->{$z->{id}}
-                    : do{ local *S = '*'.(ref $_||$_).'::'.$z->{id};
-    	                  ${*S}||*S{CODE}||*S{ARRAY}||*S{HASH} };
-        if (my $result = $s->apply_behaviour($z, $value, $_)){return $result};
+        $z->value( ref eq 'HASH'  ?  $_->{$z->id}
+                    : do{ local *S = '*'.(ref $_||$_).'::'.$z->id;
+                              ${*S}||*S{CODE}||*S{ARRAY}||*S{HASH} } ) ;
+        if (my $result = $s->apply_behaviour($z->lookup_element($_))){return $result}
     }
-    $s->lookup( $z ) if $v;
+    $s->lookup( $z->_set_to__parent_value ) if $z->_parent_zone;
 }
 
 sub apply_behaviour
@@ -100,10 +100,41 @@ sub apply_behaviour
     { if (my $result = &$_){return $result} }
 }
 
-sub set_ID_output
+sub set_ID_output { &ID_list }
+
+sub ID_list
 {
     require Text::MagicTemplate::Utilities;
     import Text::MagicTemplate::Utilities qw(parse) # redefine subs
+}
+
+####################################################
+package Text::MagicTemplate::Zone;
+our $AUTOLOAD;
+
+sub new
+{
+    my ($c, $z) = shift;
+    @$z{qw(id attributes content _parent_zone)} = @_;
+    bless $z, $c;
+}
+
+sub _parent_value { $_[0]->_parent_zone->value if $_[0]->_parent_zone }
+
+sub _set_to__parent_value
+{
+    my $z = shift;
+    my @k = qw(_parent_zone lookup_element value);
+    @$z{@k} = @{$z->_parent_zone}{@k};
+    $z;
+}
+
+sub AUTOLOAD
+{
+    my $z = shift;
+    (my $k = $AUTOLOAD) =~ s/.*://;
+    if ( @_ ) { $z->{$k} = shift; $z }
+    else { $z->{$k} }
 }
 
 1;

@@ -1,6 +1,6 @@
 sub
 {
-    my ($s, $z, $v, $l) = @_;
-    ref $v eq 'ARRAY'
-    && join '', map {$s->apply_behaviour($z, $_, $l)} @$v
+    my ($s, $z) = @_;
+    ref $z->value eq 'ARRAY'
+    && join '', map {$s->apply_behaviour($z->value($_))} @{$z->value}
 }

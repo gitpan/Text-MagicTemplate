@@ -1,5 +1,5 @@
 package Text::MagicTemplateX::Core;
-$VERSION = 1.05;
+$VERSION = 2.1;
 __END__
 
 =head1 NAME
@@ -192,7 +192,7 @@ a I<CODE> value
 
 =item Action
 
-code execution and C<apply_behaviour> method with the returned value. The subroutine will receive the I<content> and the I<attributes> of the zone.
+code execution and C<apply_behaviour> method with the returned value. The subroutine will receive the I<zone object> as a parameter.
 
 =item Description
 
@@ -270,9 +270,9 @@ L<Text::MagicTemplate|Text::MagicTemplate>, L<Text::MagicTemplate::Tutorial|Text
 
 =head1 SUPPORT and FEEDBACK
 
-More information at http://perl.4pro.net/?Text::MagicTemplateX::Core.
+I would like to have just a line of feedback from everybody who tries or actually uses this module. PLEASE, write me any comment, suggestion or request. ;-)
 
-I would like to have just a line of feedback from everybody who tries or actually uses this software. Feel free to write me any comment, suggestion or request.
+More information at http://perl.4pro.net/?Text::MagicTemplateX::Core.
 
 =head1 AUTHOR
 
