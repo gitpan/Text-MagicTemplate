@@ -1,0 +1,15 @@
+MANIFEST
+MagicTemplate.pm
+MagicTemplate.pod
+MagicTemplate/HTML.pm
+MagicTemplate/HTML.pod
+MagicTemplate/Utilities.pm
+MagicTemplate/Utilities.pod
+Makefile.PL
+README
+test.pl
+test/MagicTemplate.t
+test/included_test_01
+test/included_test_02
+test/template_test_01
+test/template_test_02
