@@ -1,5 +1,5 @@
 use Test;
-use Text::MAgicTemplate;
+use Text::MagicTemplate;
 BEGIN {  plan tests => 1 }
 
 

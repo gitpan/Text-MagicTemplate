@@ -1,5 +1,5 @@
 package Text::MagicTemplate::Utilities;
-$VERSION = '0.06';
+$VERSION = '0.07';
 use Exporter ();
 push @ISA, qw( Exporter );
 @EXPORT_OK =  qw( parse );
