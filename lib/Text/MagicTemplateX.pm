@@ -1,5 +1,5 @@
 package Text::MagicTemplateX;
-$VERSION = 2.21;
+$VERSION = 2.22;
 __END__
 
 =head1 NAME

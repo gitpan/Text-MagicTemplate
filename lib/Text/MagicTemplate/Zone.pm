@@ -1,5 +1,5 @@
 package Text::MagicTemplate::Zone;
-$VERSION = 2.21;
+$VERSION = 2.22;
 use 5.005;
 use Carp qw ( croak );
 use strict;

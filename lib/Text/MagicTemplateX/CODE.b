@@ -1,5 +1,5 @@
 # behaviour extension
-# Text::MagicTemplate distribution version 2.2
+# Text::MagicTemplate distribution version 2.22
 
 
 sub

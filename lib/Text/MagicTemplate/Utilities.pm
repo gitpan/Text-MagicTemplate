@@ -1,5 +1,5 @@
 package Text::MagicTemplate::Utilities;
-$VERSION = 2.21;
+$VERSION = 2.22;
 use Exporter ();
 push @ISA, qw( Exporter );
 @EXPORT_OK =  qw( parse );
@@ -37,7 +37,7 @@ sub _label
     $output;
 }
 
-## end set_identifier_output
+## end ID_list
 
 
 1;

@@ -1,5 +1,5 @@
 package Text::MagicTemplate;
-$VERSION = 2.21;
+$VERSION = 2.22;
 use 5.005;
 use Carp qw ( croak );
 use strict;
@@ -918,8 +918,7 @@ The copyright notice must remain fully intact at all times. Use of this software
 
 =head1 CREDITS
 
-Thanks to I<Mark Overmeer> http://search.cpan.org/author/MARKOV/ that has submitted a variety of code cleanups/speedups and other useful suggesitions.
-
+Thanks to I<Mark Overmeer> http://search.cpan.org/author/MARKOV/ that has submitted a variety of code cleanups/speedups and other useful suggestions.
 
 
 
