@@ -48,11 +48,10 @@ The template file F<'my_template_file'>... I<(this example uses plain text for c
     sub a_ref_to_sub  { \&a_sub }
     sub a_ref_to_ref  { $a_ref_to_scalar }
 
-Just add these 3 magic lines...
+Just add these 2 magic lines...
 
     use Text::MagicTemplate;
-    $mt = new Text::MagicTemplate;
-    $mt->print( 'my_template_file' );
+    Text::MagicTemplate->print( 'my_template_file' );
 
 =item the output
 
@@ -92,18 +91,17 @@ where {city} and {date_and_time} are just placeholder that you want to be replac
     $city = 'NEW YORK';
     sub date_and_time { localtime }
 
-you have just to add these 3 "magic" lines to the code:
+you have just to add these 2 magic lines to the code:
 
     use Text::MagicTemplate;
-    $mt = new Text::MagicTemplate;
-    $mt->print( 'my_template_file' );
+    Text::MagicTemplate ->print( 'my_template_file' );
 
 to generate this output:
 
     City: NEW YORK
     Date and Time: Sat Nov 16 21:03:31 2002
 
-With the same 3 magic lines of code, Text::MagicTemplate can automatically look up values from I<scalars>, I<arrays>, I<hashes>, I<references> and I<objects> from your code and produce very complex outputs. The default settings are usually smart enough to do the right job for you, however if you need complete control over the output generation, you can fine tune them by controlling them explicitly.
+With the same 2 magic lines of code, Text::MagicTemplate can automatically look up values from I<scalars>, I<arrays>, I<hashes>, I<references> and I<objects> from your code and produce very complex outputs. The default settings are usually smart enough to do the right job for you, however if you need complete control over the output generation, you can fine tune them by controlling them explicitly. See new() method for details.
 
 =head2 Concept
 
@@ -334,6 +332,11 @@ The new() method accepts one optional reference to a hash that can contain the f
 
 If you don't pass any parameter to the constructor method, the constructor defaults are usually smart enough to do the right job for you, but if you need complete control over the output generation, you can fine tune them by controlling them explicitly.
 
+If you use the defaults, and you have just to print a template, you can use the print() method as a static method, completely avoiding the new() method:
+
+    use Text::MagicTemplate;
+    Text::MagicTemplate->print('template');
+
 B<Note>: all the constructor arrays should be array references, but if you have to pass just one element, you can pass it as a plain element as well:
 
     $mt = new Text::MagicTemplate { -lookups => [\%my_hash],
@@ -487,6 +490,14 @@ This method merges the runtime values with the template and prints the output. I
 
     # this limits the output to just 'my_block_identifier'
     $mt->print( \$tpl_content, 'my_block_identifier' );
+
+You can use the print() method as a static method as well. The static method accepts the same parameters. It constructs a default object internally and prints the merged output.
+
+    Text::MagicTemplate->print( 'template' );
+
+    # that explicitly means
+    $mt = Text::MagicTemplate->new;
+    $mt->print( 'template' );
 
 =head2 get_block ( template [, identifier] )
 
@@ -646,6 +657,8 @@ A I<zone> is an area in the template that must have an I<identifier>, may have s
 L<Text::MagicTemplate::Tutorial|Text::MagicTemplate::Tutorial>, L<Text::MagicTemplateX|Text::MagicTemplateX>, L<Text::MagicTemplate::Core|Text::MagicTemplate::Core>, L<Text::MagicTemplateX::HTML|Text::MagicTemplateX::HTML>.
 
 =head1 SUPPORT and FEEDBACK
+
+More information at http://perl.4pro.net/?Text::MagicTemplate.
 
 I would like to have just a line of feedback from everybody who tries or actually uses this software. Feel free to write me any comment, suggestion or request.
 

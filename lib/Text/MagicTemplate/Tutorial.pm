@@ -1,5 +1,5 @@
 package Text::MagicTemplate::Tutorial;
-$VERSION = 1.03;
+$VERSION = 1.05;
 __END__
 
 =head1 NAME
@@ -518,6 +518,8 @@ Note that the default syntax markers ({/}) could somehow clash with perl blocks,
 =back
 
 =head1 SUPPORT and FEEDBACK
+
+More information at http://perl.4pro.net/?Text::MagicTemplate::Tutorial.
 
 I would like to have just a line of feedback from everybody who tries or actually uses this software. Feel free to write me any comment, suggestion or request.
 

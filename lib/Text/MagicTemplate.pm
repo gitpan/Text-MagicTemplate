@@ -1,5 +1,5 @@
 package Text::MagicTemplate;
-$VERSION = 2.04;
+$VERSION = 2.05;
 use 5.005;
 use Carp qw ( croak );
 use strict;
@@ -63,7 +63,13 @@ sub set_block
 }
 
 sub output { \$_[0]->parse(${&get_block}) }
-sub print  { print ${&output} }
+
+sub print
+{
+	my $s = shift;
+	$s = $s->new( {-lookups => [ (caller)[0] ]} ) unless ref $s;
+	print ${$s->output(@_)}
+}
 
 sub parse
 {

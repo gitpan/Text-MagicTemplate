@@ -1,14 +1,12 @@
 package Text::MagicTemplateX;
-$VERSION = 1.01;
+$VERSION = 1.05;
 __END__
 
 =head1 NAME
 
-Text::MagicTemplateX - namespace used by the extension of Text::MagicTemplate
+Text::MagicTemplateX - namespace used by the extensions of Text::MagicTemplate
 
 =head1 DESCRIPTION
-
-You need to read this documentation only if you are about to write your own extension, or if you are curious.
 
 Text::MagicTemplateX:: is the namespace used by the extensions of Text::MagicTemplate. This documentation cover the extension system in general: each extension collection is supposed to be documented with its own POD file.
 
@@ -219,6 +217,8 @@ This method is pratically a switch conditions that calls in turn each behaviour 
 L<Text::MagicTemplate|Text::MagicTemplate>, L<Text::MagicTemplate::Tutorial|Text::MagicTemplate::Tutorial>, L<Text::MagicTemplateX::Core|Text::MagicTemplateX::Core>, L<Text::MagicTemplateX::HTML|Text::MagicTemplateX::HTML>.
 
 =head1 SUPPORT and FEEDBACK
+
+More information at http://perl.4pro.net/?Text::MagicTemplateX.
 
 I would like to have just a line of feedback from everybody who tries or actually uses this software. Feel free to write me any comment, suggestion or request.
 

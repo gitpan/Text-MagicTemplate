@@ -1,5 +1,5 @@
 package Text::MagicTemplateX::Core;
-$VERSION = 1.01;
+$VERSION = 1.05;
 __END__
 
 =head1 NAME
@@ -36,6 +36,10 @@ L<Text::MagicTemplate> (general documentation about the I<MagicTemplate> system)
 =item *
 
 L<Text::MagicTemplate::Tutorial|Text::MagicTemplate::Tutorial>
+
+=item *
+
+L<Text::MagicTemplateXl|Text::MagicTemplateX>
 
 =back
 
@@ -265,6 +269,8 @@ B<WARNING>: Since the result of the eval() will be passed to the C<apply_behavio
 L<Text::MagicTemplate|Text::MagicTemplate>, L<Text::MagicTemplate::Tutorial|Text::MagicTemplate::Tutorial>, L<Text::MagicTemplateX|Text::MagicTemplateX>, L<Text::MagicTemplateX::HTML|Text::MagicTemplateX::HTML>.
 
 =head1 SUPPORT and FEEDBACK
+
+More information at http://perl.4pro.net/?Text::MagicTemplateX::Core.
 
 I would like to have just a line of feedback from everybody who tries or actually uses this software. Feel free to write me any comment, suggestion or request.
 
