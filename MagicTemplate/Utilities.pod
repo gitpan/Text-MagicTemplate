@@ -1,0 +1,23 @@
+=head1 NAME
+
+Text::MagicTemplate::Utilities - method redefinitions for Text::MagicTemplate
+
+=head1 DESCRIPTION
+
+Text::MagicTemplate::Utilities is a module that implements some method redefinition internally used by Text::MagicTemplate and its subclasses. It is not intended to be used directly.
+
+Please, refer to the documentation of Text::MagicTemplate.
+
+=head1 AUTHOR
+
+Domizio Demichelis, <dd@4pro.net>.
+
+=head1 COPYRIGHT
+
+Copyright (c)2002 Domizio Demichelis. All Rights Reserved. This module is free software; it may be used freely and redistributed for free providing this copyright header remains part of the module. You may not charge for the redistribution of this module. Selling this code without Domizio Demichelis' written permission is expressly forbidden.
+
+This module may not be modified without first notifying the author (this is to enable me to track modifications). In all cases the copyright header should remain fully intact in all modifications.
+
+This code is provided on an "As Is'' basis, without warranty, expressed or implied. The author disclaims all warranties with regard to this software, including all implied warranties of merchantability and fitness, in no event shall the author, Domizio Demichelis be liable for any special, indirect or consequential damages or any damages whatsoever including but not limited to loss of use, data or profits. By using this module you agree to indemnify Domizio Demichelis from any liability that might arise from it is use. Should this code prove defective, you assume the cost of any and all necessary repairs, servicing, correction and any other costs arising directly or indrectly from it is use.
+
+The copyright notice must remain fully intact at all times. Use of this program or its output constitutes acceptance of these terms.

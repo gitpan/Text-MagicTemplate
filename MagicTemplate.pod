@@ -1,0 +1,851 @@
+=head1 NAME
+
+Text::MagicTemplate - magic merger of runtime values with template
+
+=head1 SYNOPSIS
+
+=over
+
+=item the template
+
+The template file F<'my_template_file'>... I<(this example uses plain text for clarity, but MagicTemplate works with any type of text file)>
+
+	A scalar variable: {a_scalar}.
+	A reference to a scalar variable: {a_ref_to_scalar}.
+	A subroutine: {a_sub}
+	A reference to subroutine: {a_ref_to_sub}
+	A reference to reference: {a_ref_to_ref}
+	A hash: {a_hash}this block contains a {a_scalar} and a {a_sub}{/a_hash}
+
+	A loop:{an_array_of_hashes}
+	Iteration #{ID}: {guy} is a {job}{/an_array_of_hashes}
+
+	An included file:
+	{'my_included_file'}
+
+... and another template file F<'my_included_file'> that will be included...
+
+	this is the included file 'my_included_file'
+	that contains a label: {a_scalar}
+
+=item the code
+
+... some variables and subroutines already defined somewhere in your code...
+
+	$a_scalar           = 'THIS IS A SCALAR VALUE';
+	$a_ref_to_scalar    = \$a_scalar;
+	@an_array_of_hashes = ( { ID => 1, guy => 'JOHN SMITH',  job => 'PROGRAMMER' },
+	                        { ID => 2, guy => 'TED BLACK',   job => 'WEBMASTER' },
+	                        { ID => 3, guy => 'DAVID BYRNE', job => 'MUSICIAN' }  );
+	%a_hash             = ( a_scalar => 'NEW SCALAR VALUE'
+	                        a_sub    => sub { 'NEW SUB RESULT' } );
+
+	sub a_sub         { 'THIS SUB RETURNS A SCALAR' }
+	sub a_ref_to_sub  { \&a_sub }
+	sub a_ref_to_ref  { $a_ref_to_scalar }
+
+Just add these 3 magic lines...
+
+	use Text::MagicTemplate;
+	$mt = new Text::MagicTemplate;
+	$mt->print( 'my_template_file' );
+
+=item the output
+
+I<(in this example Lower case are from templates and Upper case are from code)>:
+
+	A scalar variable: THIS IS A SCALAR VALUE.
+	A reference to a scalar variable: THIS IS A SCALAR VALUE.
+	A subroutine: THIS SUB RETURNS A SCALAR
+	A reference to subroutine: THIS SUB RETURNS A SCALAR
+	A reference to reference: THIS IS A SCALAR VALUE
+	A hash: this block contains a NEW SCALAR VALUE and a NEW SUB RESULT
+
+	A loop:
+	Iteration #1: JOHN SMITH is a PROGRAMMER
+	Iteration #2: TED BLACK is a WEBMASTER
+	Iteration #3: DAVID BYRNE is a MUSICIAN
+
+	An included file:
+	this is the included file 'my_included_file'
+	that contains a label: THIS IS A SCALAR VALUE.
+
+=back
+
+=head1 DESCRIPTION
+
+Text::MagicTemplate is a "magic" interface between programming and design. It makes "magically" available all the runtime values - stored in your variables or returned by your subroutines - inside a static template file. B<Usually no need to assign values to the object>. Template outputs are linked to runtime values by their I<identifiers>, which are added to the template in the form of simple I<labels> or I<blocks> of content.
+
+	a label: {identifier}
+	a block: {identifier} content of the block {/identifier}
+
+From the designer point of view, this makes things very simple. The designer has just to decide B<what> value and B<where> to put it. Nothing else is required, no complicated new syntax to learn!
+
+On the other side, the programmer has just to define variables and subroutines as usual and their values will appear in the right place with the output. The automatic interface allows the programmer to focus just on the code, saving him the hassle of interfacing code with output, and even complicated output - with complex switch branching and nested loops - can be easily organized by minding just a few simple concepts (see L<"How it works">).
+
+=head2 Features
+
+There are several "similar" modules, so why yet another one? These features are the answer:
+
+=over
+
+=item * Simple, flexible and powerful to use
+
+In most cases, you will have just to use C<new()> and C<print(template)> methods, without having to pass any other value to the object: it will do the right job for you.
+
+=item * Extremely simple and configurable template syntax
+
+The template syntax is so simple and code-independent that even the less skilled webmaster will manage it without bothering you :-). By default Text::MagicTemplate recognizes labels in the form of simple identifiers surrounded by braces (I<{my_identifier}>), but you can easily use a different template syntax (see L<"Redefine Syntax">).
+
+=item * Automatic or manual lookup of values
+
+By default, Text::MagicTemplate compares any I<label identifier> defined in your template with any I<variable> or I<subroutine identifier> defined in the caller namespace. However, you can explicitly define the lookup otherwise, by passing to the C<new()> method a list of package namespaces and/or hash references.
+
+=item * Support for unlimited nested included templates
+
+Sometimes it can be useful to split a template into differents files. No nesting limit when including files into files. (see L<"Include a file">)
+
+=item * Branching support
+
+You can easily create simple or complex if-elsif-else conditions to print just the blocks linked with the true conditions (see L<"Setup an if-else condition"> and L<"Setup a switch condition">)
+
+=item * Unlimited nested loops support
+
+When you need complex outputs you can build any immaginable nested loop, even mixed with control switches and included templates (see L<"Build a loop"> and L<"Build a nested loop">)
+
+=item * Placeholders and simulated areas support
+
+Placeholders and simulated areas can help in designing the template for a more consistent preview of the final output. (see L<"Setup placeholders"> and L<"Setup simulated areas">)
+
+=item * Template block management
+
+When you need complex management of templates files, you have a couple of static methods to extract, mix and set blocks inside any template. (see C<get_block()> and C<set_block()> static methods)
+
+=item * Simple to maintain
+
+Change your code and Text::MagicTemplate will change its behaviour accordingly. In most cases you will not have to reconfigure, either the object, or the template.
+
+=item * Very lightweight
+
+F<MagicTemplate.pm> doesn't use any other module and its code is just about 100 lines I<(easier to write that this documentation :-) )>
+
+=back
+
+=head2 How it works
+
+The Text::MagicTemplate object is a blessed array containing locations that it uses to look up I<identifiers>. This array can store package namespaces or references to hashes. If no parameter is passed to the constructor, the package namespace of the caller will be used by default.
+
+Text::MagicTemplate compares any I<label identifier> defined in your template with any I<variable> or I<subroutine identifier> (for package locations) or I<key> (for hash locations) defined in each stored location. When it find a match, it looks for the value. If the value represents a CODE, it will be executed to achieve a returned value; if the value represents a reference, it will be dereferenced until the actual value will be achieved.
+
+B<The TYPE of the found value will determine the behaviour of MagicTemplate>:
+
+=over
+
+=item *
+
+An B<UNDEF> value will B<delete> I<label> or I<block>.
+
+=item *
+
+A B<SCALAR> type will B<replace> I<label> or I<block> with the scalar value.
+
+=item *
+
+A B<HASH> type will set that HASH as a B<temporary location> for the lookup of the I<block>. Text::MagicTemplate first uses that location to look up the identifiers contained in the block; then, if unsuccessful, it will search into the stored locations.
+
+=item *
+
+An B<ARRAY> type will B<generate a loop>, merging each value in the array with the the I<block> and replacing the block with the sequence of the outputs.
+
+=back
+
+B<Examples>:
+
+	The same template: '{block}|before-{label}-after|{/block}'
+
+	... with these values...               ...produce these outputs
+	---------------------------------------------------------------------------
+	$label = 'THE VALUE';               >
+	$block = undef;
+	---------------------------------------------------------------------------
+	$label = 'THE VALUE';               >  NEW CONTENT
+	$block = 'NEW CONTENT';
+	---------------------------------------------------------------------------
+	$label = 'THE VALUE';               >  |before-THE VALUE-after|
+	$block = {};
+	---------------------------------------------------------------------------
+	$label = undef;                     >  |before--after|
+	$block = {};
+	---------------------------------------------------------------------------
+	$label = 'THE VALUE';               >  |before-NEW VALUE-after|
+	%block = (label=>'NEW VALUE');
+	---------------------------------------------------------------------------
+	$label = 'THE VALUE';               >  |before-NEW VALUE-after|
+	$block = {label=>'NEW VALUE'};
+	---------------------------------------------------------------------------
+	$label = 'THE VALUE';               >  NEW CONTENT|before-THE VALUE-after|
+	@block = ('NEW CONTENT',               |before-NEW VALUE-after|
+	          {},
+	          {label=>'NEW VALUE'});
+	---------------------------------------------------------------------------
+	$label = 'THE VALUE';               >  NEW CONTENT|before-THE VALUE-after|
+	$block = ['NEW CONTENT',               |before-NEW VALUE-after|
+	          {},
+	          {label=>'NEW VALUE'}];
+	---------------------------------------------------------------------------
+
+Different combinations of I<values, labels> and I<blocks> can easily produce complex ouputs. See the L<"HOW TO..."> section in this documentation.
+
+=head1 METHODS
+
+=over
+
+=item new ( [lookup_list] )
+
+The constructor method creates a blessed array reference. This array contains locations where the methods will look up the identifiers present in the template. Locations are packages or hashes: with packages locations, the lookup is done with all the IDENTIFIERS defined in the package namespace, with hash locations it is done with the KEYS existing in the hash.
+
+If you want to make available all the identifiers of your current package, just call the constructor without parameters:
+
+	# default lookup in the caller package
+	$mt = new Text::MagicTemplate ;
+
+	# same thing but explicit
+	$mt = new Text::MagicTemplate __PACKAGE__ ;
+
+
+If you want to keep unavailable some variable or subroutine from the template, you can pass just the reference of some hash containing just the identifiers used in the template. This is the best method to use the module IF you allow untrustly people to edit the template AND if you have any potentially dangerous subroutine in your code. (see L<"CAVEATS">).
+
+	# lookup in %my_hash only
+	$mt = new Text::MagicTemplate \%my_hash ;
+
+You can also define an arbitrary list of packages and/or references to hashes as the lookup: the precedence of the lookup will be inherited from the order of the items passed, and the first found mach will return the value.
+
+	# lookup in several location
+	$mt = new Text::MagicTemplate \%my_hash, 'main', \%my_other_hash ;
+
+In this example, the lookup will be done in C<%my_hash> first - if unsuccessful - it will be done in the C<'main' package> and - if unsuccessful - it will be done in C<%my_other_hash>.
+
+=item output ( template [, identifier] )
+
+This method merges the runtime values with the template and returns a reference to the output. It accept one I<template> parameter that can be a string or a reference. If it is a string it is considered to be a path to a template file; if it is a reference, it is considered to be a reference to a template content. If any I<identifier> is passed, it returns a reference to the output of just that block.
+
+	# template is a path
+	$output = $mt->output( '/temp/template_file.html' );
+
+	# template is a reference
+	$output = $mt->output( $tpl_content );
+
+	# this limits the output to just 'my_block_identifier'
+	$my_block_output = $mt->output( $tpl_content, 'my_block_identifier' );
+
+=item print ( template [, identifier] )
+
+This method merges the runtime values with the template and prints the output. The I<template> can be a string or a reference. If it is a string it is considered to be a path to a template file; if it is a reference, it is considered to be a reference to a template content. If any I<identifier> is passed, it prints the output of just that block.
+
+	# template is a path
+	$mt->print( '/temp/template_file.html' );
+
+	# template is a reference
+	$mt->print( $tpl_content );
+
+	# this limits the output to just 'my_block_identifier'
+	$mt->print( $tpl_content, 'my_block_identifier' );
+
+=back
+
+=head1 STATIC METHODS
+
+To use any of the static method in this section you must load the module:
+
+	use Text::MagicTemplate;
+
+and use them directly by using the class name:
+
+	CLASS_NAME->static_method_identifier(parameters)
+
+B<Examples>
+
+	... Text::MagicTemplate->get_block ( ....... )
+	... Text::MagicTemplate->set_block ( ....... )
+	... Text::MagicTemplate::HTML->get_block ( ....... )
+	... myCustomSyntax->set_block ( ....... )
+	... Text::MagicTemplate::HTML->no_code_execution
+	...
+
+=over
+
+=item syntax ( START_MARKER, END_MARKER_ID, END_MARKER )
+
+This static method redefine the syntax for the class. This is the basic structure of a generic label:
+
+        +--------------+---------------+------------+------------+
+        | START_MARKER | END_MARKER_ID | IDENTIFIER | END_MARKER |
+        +--------------+---------------+------------+------------+
+
+where END_MARKER_ID is exclusively used to produce an end label, and is omitted in every other case.
+
+These are the default values of the markers that define the label.
+
+        START_MARKER:   {
+        END_MARKER_ID:  /
+        END_MARKER:     }
+
+You can redefine them using this static method:
+
+	Text::MagicTemplate->syntax qw|__ END_ __|;
+
+where '__' is the START_MARKER, 'END_' is the END_MARKER_ID and '__' is the END_MARKER;
+
+See L<"Redefine Syntax"> to have more details.
+
+=item no_code_execution ()
+
+This static method disables the execution of subroutines from your code. (see L<"CAVEATS"> for details).
+
+=item code_execution ()
+
+This static method enables the execution of subroutines from your code. Since this feature is enabled by default, you need it only if you have used no_code_execution() static method before.
+
+=item get_block ( template [, identifier] )
+
+This static method returns a reference to the template content or to a block inside the template, without merging values. The I<template> can be a string or a reference. If it is a string it is considered to be a path to a template file; if it is a reference, it is considered to be a reference to a template content. If any I<identifier> is passed, it returns just that block.
+
+	# this returns a ref to the whole template content
+	$tpl_content = Text::MagicTemplate->get_block ( '/temp/template_file.html' );
+
+	# this return a ref to the 'my_block_identifier' block
+	$tpl_block = Text::MagicTemplate->get_block ( '/temp/template_file.html', 'my_block_identifier' );
+
+	# same thing passing a reference
+	$tpl_block = Text::MagicTemplate->get_block ( $tpl_content, 'my_block_identifier' );
+
+=item set_block ( template, identifier, new_content )
+
+This static method sets the content of the block (or blocks) I<identifier> inside a I<template> - without merging values - and returns a reference to the changed template. The I<template> can be a string or a reference. If it is a string it is considered to be a path to a template file; if it is a reference, it is considered to be a reference to a template content. I<New_content> can be a reference to the content or the content itself.
+
+	# this return a ref to the 'my_block' block
+	$new_content = Text::MagicTemplate->get_block ( '/temp/template_file_2.html', 'my_block' );
+
+	# this returns a ref to the changed template content,
+	$changed_content = Text::MagicTemplate->set_block ( '/temp/template_file.html', 'my_old_block', $new_content );
+
+=back
+
+=head1 CONSTANTS
+
+Text::MagicTemplates utilizes constants to change some behaviour.
+
+=over
+
+=item $Text::MagicTemplate::ID_OUTPUT
+
+A true value of this constant will generate a pretty formatted output of only the identifiers present in the template. Thus the programmer can pass a description of each label and block within a template to a designer.
+
+To activate this behaviour you must set  the constant to true at compile time and before the use of the module. Example:
+
+	BEGIN { $Text::MagicTemplate::ID_OUTPUT++ }
+	use Text::MagicTemplate::HTML;
+
+(see L<"Prepare the identifiers description list">)
+
+=back
+
+=head1 HOW TO...
+
+Please, carefully read and understand section L<"How it works">, before reading this section.
+
+=head2 Include a file
+
+To include a file in a template just set a label with the pathname of the file as identifier, surrounded by quotes:
+
+	{'/temp/footer.html'}
+
+The file will be included in place of the label and if it is a template, it will be processed as usual.
+
+=over
+
+=head2 Redefine Syntax
+
+=over
+
+=item by using a prebuilt syntax module
+
+The standard installation comes with a HTML friendly syntax module that implements a HTML-comment-like syntax. If your output is an HTML text - or just because you prefer that particular look - you can use it instead of using the standard module. Read the documentation of B<Text::MagicTemplate::HTML> to know the details.
+
+=item by adding one line to your code
+
+To redefine syntax use the C<syntax()> static method, directly in your code:
+
+	use Text::MagicTemplate;
+	Text::MagicTemplate->syntax qw|{ / }|;  # redefine the markers as needed
+
+=item by subclassing Text::MagicTemplate class
+
+If you need some custom and permanent solution you can subclass the C<Text::MagicTemplate> class. As an added benefit, this method allows you to use different syntaxes in the same script.
+
+This is an example that explains you how to write and use a custom syntax module F<myCustomSyntax.pm> I<(obviously you can use the class name you prefer)>.
+
+Redefine the markers and save this code as file F<myCustomSyntax.pm>
+
+	package myCustomSyntax;	# choose a meaningful package namespace :-)
+	use Text::MagicTemplate;
+	push @ISA, qw(Text::MagicTemplate);
+
+	__PACKAGE__->syntax qw|__ END_ __|; # redefine these values as needed
+
+	1;
+
+Use it by loading the module as usual:
+
+	use myCustomSyntax;
+
+and use methods as usual...
+
+	$mt = new myCustomSyntax;
+	$mt->print ( 'my_custom_template_file' );
+
+This sintax would work with this block labeled 'my_identifier':
+
+	__my_identifier__ content of block __END_my_identifier__
+
+If you write some custom syntax module - useful for any particular output - please, let me know.
+
+=back
+
+=head2 Setup a template
+
+A quick way to setup a template in 4 simple steps is the following:
+
+=over
+
+=item 1 Prepare an output
+
+Prepare a complete output as your code could print. Place all the static items of your output where they should go, place placeholders (any runtime value that your code would supply) where they should go and format everything as you want
+
+=item 1 Choose names
+
+Choose meaningful names (or variables and subroutines names if you already have a code) for labels and blocks
+
+=item 1 Insert single labels
+
+Find the dynamic items in the template and replace them with a label, or if you want to keep them as visible placeholders, transform each one of them into a block
+
+=item 1 Define blocks
+
+If you have any area that will be repeated by a loop or that will be printed just under certain conditions transform it into a block.
+
+=head2 Setup placeholders
+
+These are a couple of templates that use a HTML friendly sintax (implemented in B<Text::MagicTemplate::HTML>). The output will be the same for both templates, with or without placeholders: the difference is the way you can look at the template.
+
+=over
+
+=item template without placeholders
+
+	<p><hr>Name: <b style="color:blue"><!--{name}--></b><br>
+	Surname: <b style="color:blue"><!--{surname}--></b><hr></p>
+
+This is what you would see in a WYSIWYG editor: I<(you should be using a browser to see the example below this line)>
+
+=begin html
+	<p><hr>Name: <b style="color:blue"><!--{name}--></b><br>
+	Surname: <b style="color:blue"><!--{surname}--></b><hr></p>
+
+=end
+
+=item template with placeholders
+
+The placeholders "John" and "Smith" are included in blocks and will be replaced by the actual values of 'name' and 'surname' from your code.
+
+	<p><hr>Name: <b style="color:blue"><!--{name}-->John<!--{/name}--></b><br>
+	Surname: <b style="color:blue"><!--{surname}-->Smith<!--{/surname}--></b><hr></p>
+
+This is what you would see in a WYSIWYG editor: I<(you should be using a browser to see the example below this line)>
+
+=begin html
+	<p><hr>Name: <b style="color:blue"><!--{name}-->John<!--{/name}--></b><br>
+	Surname: <b style="color:blue"><!--{surname}-->Smith<!--{/surname}--></b><hr></p>
+
+=end
+
+=back
+
+=head2 Setup simulated areas
+
+If you want to include in your template some area only for design purpose I<(for example to see, right in the template, how could look a large nested loop)>, just transform it into a block and give it an identifier that will never be defined in your code.
+
+	{my_simulated_area}this block simulates a possible output and it will never generate any output{/my_simulated_area}
+
+=head2 Setup labeled areas
+
+If you want to label some area in your template I<(for example to extract the area to mix with another template)>, just transform it into a block and give it an identifier that will always be defined in your code. A convenient way to do so is to set the identifier to a reference to an empty hash. This will generate the output of the block and will do the lookup into the stored locations.
+
+=over
+
+=item the code
+
+	$my_labeled_area = {};	# a ref to an empty hash
+
+=item the template
+
+	{my_labeled_area}this block will always generate an output{/my_labeled_area}
+
+=back
+
+=head2 Build a loop
+
+=over
+
+=item the template
+
+A loop is represented by a block, usually containing labels:
+
+	A loop:
+	{my_loop}-------------------
+	Date: {date}
+	Operation: {operation}
+	{/my_loop}-------------------
+
+=item the code
+
+You should have some array of hashes (or a reference to) defined somewhere:
+
+	$my_loop = [
+	             { date => '8-2-02', operation => 'purchase' },
+	             { date => '9-3-02', operation => 'payment' }
+	           ] ;
+
+=item the output
+
+	A loop:
+	-------------------
+	Date: 8-2-02
+	Operation: purchase
+	-------------------
+	Date: 9-3-02
+	Operation: payment
+	-------------------
+
+=back
+
+=head2 Build a nested loop
+
+=over
+
+=item the template
+
+A nested loop is represented by a block nested into another block:
+
+	A nested loop:
+	{my_nested_loop}-------------------
+	Date: {date}
+	Operation: {operation}
+	Details:{details}
+	           - {quantity} {item}{/details}
+	{/my_nested_loop}-------------------
+
+Note that the block I<'details'> is nested into the block I<'my_nested_loop'>.
+
+=item the code
+
+You should have some array nested into some other array, defined somewhere:
+
+	# a couple of nested "for" loops may produce this:
+	$my_nested_loop = [
+	                     {
+	                        date      => '8-2-02',
+	                        operation => 'purchase',
+	                        details   => [
+	                                        {quantity => 5, item => 'balls'},
+	                                        {quantity => 3, item => 'cubes'},
+	                                        {quantity => 6, item => 'cones'}
+	                                     ]
+	                     },
+	                     {
+	                        date      => '9-3-02',
+	                        operation => 'payment',
+	                        details   => [
+	                                        {quantity => 2, item => 'cones'},
+	                                        {quantity => 4, item => 'cubes'}
+	                                     ]
+	                      }
+	                  ] ;
+
+Note that the value of the keys I<'details'> are a reference to an array of hashes.
+
+=item the output
+
+	A nested loop:
+	-------------------
+	Date: 8-2-02
+	Operation: purchase
+	Details:
+	          - 5 balls
+	          - 3 cubes
+	          - 6 cones
+	-------------------
+	Date: 9-3-02
+	Operation: payment
+	Details:
+	          - 2 cones
+	          - 4 cubes
+	-------------------
+
+=back
+
+=head2 Setup an if-else condition
+
+=over
+
+=item the template
+
+An if-else condition is represented with 2 blocks
+
+	{OK_block}This is the OK block, containig {a_scalar}{/OK_block}
+	{NO_block}This is the NO block{/NO_block}
+
+=item the code
+
+Remember that a block will be deleted if the lookup of the identifier returns the UNDEF value, so your code will determine what block will generate output (defined identifier) and what not (undefined identifier).
+
+	if ($OK) { $OK_block = {a_scalar => 'A SCALAR VARIABLE'} }
+	else     { $NO_block = {} }
+
+Same thing here:
+
+	$a_scalar = 'A SCALAR VARIABLE';
+	$OK ? $OK_block={} : $NO_block={};
+
+=item the output
+
+A true C<$OK> would leave undefined C<$NO_block>, so it would produce this output:
+
+	This is the OK block, containig A SCALAR VARIABLE
+
+A false $OK would leave undefined C<$OK_block>, so it would produce this output:
+
+	This is the NO block
+
+Note that C<$OK_block> and C<$NO_block> should not return a SCALAR value, that would replace the whole block with the value of the scalar. (see Examples in L<"How it works">)
+
+=back
+
+=head2 Setup a switch condition
+
+=over
+
+=item the template
+
+A simple switch (if-elsif-elsif) condition is represented with multiple blocks:
+
+	{type_A}type A block with {a_scalar_1}{/type_A}
+	{type_B}type B block with {a_scalar_2}{/type_B}
+	{type_C}type C block with {a_scalar_1}{/type_C}
+	{type_D}type D block with {a_scalar_2}{/type_D}
+
+=item the code
+
+Your code will determine what block will generate output (defined identifier) and what not (undefined identifier). In the following example, value of C<$type>  will determine what block will produce output, then the next line will define C<$type_C> using a symbolic reference:
+
+	$type  = 'type_C';
+	$$type = { a_scalar_1 => 'THE SCALAR 1', a_scalar_2 => 'THE SCALAR 2' };
+
+Same thing yet but with a different programming style:
+
+	$a_scalar_1 = 'THE SCALAR 1';
+	$a_scalar_2 = 'THE SCALAR 2';
+	$type       = 'type_D';
+	$$type      = {};
+
+Same thing without using any symbolic reference:
+
+	$type       = 'type_D';
+	$my_hash{$type} = { a_scalar_1 => 'THE SCALAR 1', a_scalar_2 => 'THE SCALAR 2' };
+	$mt = new Text::MagicTemplate \%my_hash;
+
+=item the output
+
+A C<$type> set to 'type_C' would produce this output:
+
+	type C block with THE SCALAR 1
+
+A C<$type> set to 'type_D' would produce this output:
+
+	type D block with THE SCALAR 2
+
+=back
+
+=head2 Prepare the identifiers description list
+
+If you have to pass to a webmaster the description of every label and block in your program, Text::MagicTemplate can help you by generating a pretty formatted list of all the identifiers (from labels and blocks) present in any output printed by your program. Just follow these steps:
+
+=over
+
+=item 1 Add the following BEGIN block anywhere before the use statement:
+
+	BEGIN { $Text::MagicTemplate::ID_OUTPUT++ }
+	use Text::MagicTemplate::HTML;
+
+=item 2 Capture the outputs of your program
+
+Your program will run exactly the same way, but instead of print the regular outputs, it will print just a pretty formatted list of all the identifiers present in any output.
+
+=item 3 Add the description
+
+Add the description of each label and block to the captured output and give it to the webmaster.
+
+=back
+
+=head1 CAVEATS
+
+Read this section just in case you are planning to allow untrustworthy people to edit the template.
+
+=head2 Allowing untrustworthy people to edit the template
+
+F<MagicTemplate.pm> does not use any eval() statement, it just do a recursive search and replace with the content of the template. Besides, the allowed characters for identifiers are only alphanumeric C<(\w+)>, so even dealing with tainted templates should not raise any security problem that you wouldn't have in your program itself.
+
+However, since the module is just about 100 lines of code, you should consider to analise it directly. If you do this, please send me some feedback.
+
+=head3 Avoid unwanted executions
+
+This module can execute the subroutines of your code whenever it matches a label or block identifier with the subroutine identifier. Though unlikely, it is possible in principle that someone sneaks the correct identifier from your code, therefore, if you have any potentially dangerous subroutine in your code, you should restrict this capability. To do this, you can use the C<no_code_execution()> static method, or pass only explicit locations to the C<new()> method.
+
+=over
+
+=item potentially unsafe code
+
+	sub my_potentially_dangerous_sub { unlink 'database_file' };
+	$name = 'John';
+	$surname = 'Smith';
+	$mt = new Text::MagicTemplate ; # automatic lookup in __PACKAGE__ namespace
+
+With this code, a malicious person allowed to edit the template could add the label I<{my_potentially_dangerous_sub}> in the template and that label would trigger the deletion of 'database_file'.
+
+=item code with no_code_execution
+
+Use the same code, but add this line:
+
+	Text::MagicTemplate->no_code_execution;
+
+... so Text::MagicTemplate will execute no subroutines
+
+Note that if you use a subclass - as C<Text::MagicTemplate::HTML> - you must use the correct subclass name:
+
+	Text::MagicTemplate::HTML->no_code_execution;
+	# or
+	myCustomSyntax->no_code_execution;
+
+=item code with restricted lookups
+
+	sub my_potentially_dangerous_sub { unlink 'database_file' };
+	%my_restricted_hash = ( name => 'John', surname => 'Smith' );
+	$mt = new Text::MagicTemplate \%my_restricted_hash ; # lookup in %my_restricted_hash only
+
+With this code the lookup is restricted to just the identifiers used in the template, thus the subroutine C<my_potentially_dangerous_sub> is unavailable to the outside world. (see C<new()> method).
+
+=back
+
+=head1 GLOSSARY
+
+=over
+
+=item block
+
+A I<block> is a chunk of text in a I<template> delimited by (and including) a I<label> and an I<end label>:
+
+	+-------+-------------------+------------+
+	| LABEL |      CONTENT      | END_LABEL  |
+	+-------+-------------------+------------+
+
+Example: B<{my_identifier} content of the block {/my_identifier}>
+
+where C<'{my_identifier}'> is the LABEL, C<' content of the block '> is the CONTENT and C<'{/my_identifier}'> is the END_LABEL.
+
+=item end label
+
+An I<end label> is a string in the form of:
+
+	+--------------+---------------+------------+------------+
+	| START_MARKER | END_MARKER_ID | IDENTIFIER | END_MARKER |
+	+--------------+---------------+------------+------------+
+
+Example of end label : B<{/my_identifier}>
+
+where C<'{'> is the START_MARKER, C<'/'> is the END_MARKER_ID, C<'my_identifier'> is the IDENTIFIER, and C<'}'> is the END_MARKER.
+
+=item identifier
+
+A I<label identifier> is a alphanumeric name C<(\w+)> that represents (and usually matches) a variable or a subroutine identifier of your code.
+
+=item include label
+
+An I<include label> is a I<label> used to include a I<template> file. The I<identifier> must be surrounded by single or double quotes and should be a valid path.
+
+Example: B<{'/templates/temp_file.html'}>
+
+=item label
+
+A I<label> is a string in the form of:
+
+	+--------------+------------+------------+
+	| START_MARKER | IDENTIFIER | END_MARKER |
+	+--------------+------------+------------+
+
+Example: B<{my_identifier}>
+
+where C<'{'> is the START_MARKER, C<'my_identifier'> is the IDENTIFIER and C<'}'> is the END_MARKER.
+
+=item locations
+
+I<Locations> are packages namespaces or hashes used to perform lookups.
+
+=item lookup
+
+The action performed by a method to compare label I<identifier> with code identifier (variable identifiers, subroutine identifiers and hash keys).
+
+
+=item nested block
+
+A I<nested block> is a I<block> contained in another I<block>:
+
+	+----------------------+
+	|   CONTAINER_BLOCK    |
+	|  +----------------+  |
+	|  |  NESTED_BLOCK  |  |
+	|  +----------------+  |
+	+----------------------+
+
+Example:
+	{my_container_identifier}
+	B<{my_nested_identifier} content of the block {/my_nested_identifier}>
+	{/my_container_identifier}
+
+where all the above is the CONTAINER_BLOCK and C<'{my_nested_identifier} content of the block {/my_nested_identifier}'> is the NESTED_BLOCK.
+
+=item output
+
+The I<output> is the result of the merger of runtimes data with a template
+
+=item template
+
+A I<template> is a text content or a text file (plain, HTML, XML, etc.) containing some I<label> or I<block>.
+
+=back
+
+=head1 SUPPORT and FEEDBACK
+
+I would like to have just a line of feedback from everybody who tries or actually uses this module. Feel free to write me any comment, suggestion or request.
+
+=head1 AUTHOR
+
+Domizio Demichelis, <dd@4pro.net>.
+
+=head1 COPYRIGHT
+
+Copyright (c)2002 Domizio Demichelis. All Rights Reserved. This module is free software; it may be used freely and redistributed for free providing this copyright header remains part of the module. You may not charge for the redistribution of this module. Selling this code without Domizio Demichelis' written permission is expressly forbidden.
+
+This module may not be modified without first notifying the author (this is to enable me to track modifications). In all cases the copyright header should remain fully intact in all modifications.
+
+This code is provided on an "As Is'' basis, without warranty, expressed or implied. The author disclaims all warranties with regard to this software, including all implied warranties of merchantability and fitness, in no event shall the author, Domizio Demichelis be liable for any special, indirect or consequential damages or any damages whatsoever including but not limited to loss of use, data or profits. By using this module you agree to indemnify Domizio Demichelis from any liability that might arise from it is use. Should this code prove defective, you assume the cost of any and all necessary repairs, servicing, correction and any other costs arising directly or indrectly from it is use.
+
+The copyright notice must remain fully intact at all times. Use of this program or its output constitutes acceptance of these terms.
