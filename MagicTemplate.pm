@@ -1,23 +1,22 @@
 package Text::MagicTemplate;
-$VERSION = '1.1';
+$VERSION = '1.2';
 use Carp qw ( croak );
 use strict; no strict "refs";
 
 sub new
 {
     my $c = shift;
-    $_[0] = caller unless @_;
-    $c->syntax qw|{ / }| unless ${$c.'::_START'} and ${$c.'::_END_ID'} and ${$c.'::_END'};
-    $c->code_execution;
+    @_ || push @_, caller;
+    $c->syntax || $c->syntax qw|{ / }| ;
+    defined ${$c.'::_CODE_EXECUTION'} || $c->code_execution;
     bless \@_, $c;
 }
 
 sub syntax
 {
-    my ($c) = shift;
-    ${$c.'::_START'}  = quotemeta shift;
-    ${$c.'::_END_ID'} = quotemeta shift;
-    ${$c.'::_END'}    = quotemeta shift;
+    my $c = shift;
+    (${$c.'::_START'}, ${$c.'::_END_ID'}, ${$c.'::_END'}) = map quotemeta, @_ if @_;
+    (${$c.'::_START'}, ${$c.'::_END_ID'}, ${$c.'::_END'});
 }
 
 sub code_execution    { ${shift().'::_CODE_EXECUTION'} = 1 }
@@ -39,28 +38,30 @@ sub get_block
 {
     my ($type, $temp, $id) = @_;
     my $c = ref $type || $type;
+    my ($S, $I, $E) = $c->syntax;
     if (ref $temp) { $temp = $$temp }
     else           { open INP, $temp or croak "Error opening template file \"$temp\" ($!)";
-                     undef $/; $temp = <INP>; $/="\n"; close INP; }
-    $temp =~ s/${$c.'::_START'}('|")(.*?)\1${$c.'::_END'}/${$c->get_block($2)}/gse;   # include
-    if ($id) { ($temp) = $temp =~ m|(${$c.'::_START'}$id.*?${$c.'::_END'}.*?${$c.'::_START'}${$c.'::_END_ID'}$id${$c.'::_END'})|s }
+                     $temp = do {local $/; <INP>}; close INP; }
+    $temp =~ s/ $S ('|") (.*?) \1 $E / ${$c->get_block($2)} /xgse;   # include
+    ($temp) = $temp =~ /($S $id $E .*? $S $I $id $E)/xs if $id;
     \$temp;
 }
 
 sub set_block
 {
     my ($c, $temp, $id, $new_content) = @_;
+    my ($S, $I, $E) = $c->syntax;
     $temp = $c->get_block($temp);
     $new_content = $$new_content if ref $new_content;
-    $$temp =~ s|${$c.'::_START'}$id.*?${$c.'::_END'}.*?${$c.'::_START'}${$c.'::_END_ID'}$id${$c.'::_END'}|$new_content|sg ;
+    $$temp =~ s/ $S $id $E .*? $S $I $id $E /$new_content/xsg ;
     $temp;
 }
 
 sub _block
 {
     my ($s, $content, $ref) = @_;
-    my $c    = ref $s || $s;
-    $content =~ s!${$c.'::_START'}(\w+)${$c.'::_END'}(?:(.*?)${$c.'::_START'}${$c.'::_END_ID'}\1${$c.'::_END'})?!$s->_lookup($2, $1, $ref)!sge ;
+    my ($S, $I, $E) = ref($s)->syntax;
+    $content =~ s/ $S (\w+) $E (?: (.*?) $S $I \1 $E )? /$s->_lookup($2, $1, $ref)/xsge ;
     $content;
 }
 

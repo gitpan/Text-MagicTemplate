@@ -381,6 +381,10 @@ You can redefine them using this static method:
 
 where '__' is the START_MARKER, 'END_' is the END_MARKER_ID and '__' is the END_MARKER;
 
+The syntax() static method returns the list of the markers:
+
+    my ($start_marker, $end_marker_id, $end_marker) = Text::MagicTemplate->syntax;
+
 See L<"Redefine Syntax"> to have more details.
 
 =item no_code_execution ()
