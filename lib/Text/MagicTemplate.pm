@@ -1,5 +1,5 @@
 package Text::MagicTemplate   ;
-$VERSION = 3.1                ;
+$VERSION = 3.11               ;
 use 5.005                     ;
 use Carp qw ( croak )         ;
 use strict                    ;
@@ -131,7 +131,7 @@ sub _template
   my $mtime = (stat($t))[9] ;
   if (not ref $t) # if it is a path
   {
-    if ($mtime > $s->{templates}{$t}{mtime}) # if it is to be cached
+    if ($mtime > $s->{templates}{$t}{mtime}) # if it has to be cached
     {
       $s->{templates}{$t}{t} = $s->_split_template($s->get_block(@_)) ;
       $s->{templates}{$t}{mtime} = $mtime ;
@@ -265,7 +265,7 @@ sub CODE # value handler
     if ( ref $v eq 'CODE' )
     {
       my $l = $z->location;
-      if ( length(ref $l) && eval { $l->isa(ref $l) } )  # if blessed pass obj
+      if ( length(ref $l) && eval { $l->isa(ref $l) } )  # if pass blessed obj
            { $z->value = $z->value->($l, $z) }           # set value to result
       else { $z->value = $z->value->($z) }               # set value to result
       # 'unless' avoid infinite loop caused by undef sub
@@ -371,12 +371,11 @@ sub ID_list
   ]
 }
 
-
 =head1 NAME
 
 Text::MagicTemplate - magic merger of runtime values with templates
 
-=head1 VERSION 3.1
+=head1 VERSION 3.11
 
 =head1 WARNING!
 
@@ -1178,11 +1177,11 @@ A B<SCALAR> value type will B<replace> the I<zone> with the scalar value.
 
 =item *
 
-A B<REFERENCE> value will be B<dereferenced>, and the value returned will be checked again to apply an appropriate behaviour
+A B<REFERENCE> value will be B<dereferenced>, and the value returned will be checked again to apply an appropriate handler
 
 =item *
 
-A B<CODE> value type will be B<executed>, and the value returned will be checked again to apply an appropriate behaviour
+A B<CODE> value type will be B<executed>, and the value returned will be checked again to apply an appropriate handler
 
 =item *
 
@@ -2005,9 +2004,6 @@ More information at http://perl.4pro.net/?Text::MagicTemplate.
 =head1 AUTHOR
 
 Domizio Demichelis, <dd@4pro.net>.
-
-=for html
-<img src="http://perl.4pro.net/bug?Text::MagicTemplate" height="1" width="1" border="0">
 
 =head1 COPYRIGHT
 
