@@ -1,8 +1,9 @@
 package Text::MagicTemplate::HTML;
-$VERSION = '1.0';
+$VERSION = '1.1';
+use 5.005;
 use Text::MagicTemplate;
 push @ISA, qw(Text::MagicTemplate);
 
-__PACKAGE__->syntax qw|<!--{ / }-->|;
+__PACKAGE__->syntax ( qw|<!--{ / }-->| );
 
- 1;
+1;

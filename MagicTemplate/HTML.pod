@@ -1,6 +1,6 @@
 =head1 NAME
 
-Text::MagicTemplate::HTML - implements HTML-comment-like syntax for Text::MagicTemplate
+Text::MagicTemplate::HTML - implements HTML friendly syntax for Text::MagicTemplate
 
 =head1 SYNOPSIS
 
@@ -37,9 +37,10 @@ You can edit the HTML template with a WYSIWYG editor, keeping a consistent previ
 
 The normal HTML comments will be preserved in the final output, while the labels will be wiped out.
 
+
 =back
 
-Please, refer to the documentation of B<Text::MagicTemplate> in order to use it properly.
+Most of the interesting reading is in L<Text::MagicTemplate>: please, refer to that documentation in order to use it properly.
 
 =head1 MARKERS
 
@@ -48,6 +49,10 @@ These are the default values of the markers that define the label.
         START_MARKER:   <!--{
         END_MARKER_ID:  /
         END_MARKER:     }-->
+
+=head1 SEE ALSO
+
+L<Text::MagicTemplate|Text::MagicTemplate>
 
 =head1 AUTHOR
 

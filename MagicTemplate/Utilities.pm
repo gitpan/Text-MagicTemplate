@@ -1,10 +1,12 @@
 package Text::MagicTemplate::Utilities;
-$VERSION = '0.03';
+$VERSION = '0.04';
 use Exporter ();
 push @ISA, qw( Exporter );
-@EXPORT =  qw( _block );
+@EXPORT_OK =  qw( _block );
 
 use strict; no strict "refs";
+
+## set_identifier_output
 
 sub _block
 {
@@ -34,5 +36,10 @@ sub _label
     $output .= "\t" x $level . $end_lab if $end_lab;
     $output;
 }
+
+## end set_identifier_output
+
+
+
 
 1;

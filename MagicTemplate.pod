@@ -4,7 +4,7 @@ Text::MagicTemplate - magic merger of runtime values with template
 
 =head1 SYNOPSIS
 
-=over 2
+=over
 
 =item the template
 
@@ -74,7 +74,7 @@ I<(in this example Lower case are from templates and Upper case are from code)>:
 
 =head1 DESCRIPTION
 
-Text::MagicTemplate is a "magic" interface between programming and design. It makes "magically" available all the runtime values - stored in your variables or returned by your subroutines - inside a static template file. B<Usually no need to assign values to the object>. Template outputs are linked to runtime values by their I<identifiers>, which are added to the template in the form of simple I<labels> or I<blocks> of content.
+Text::MagicTemplate is a "magic" interface between programming and design. It makes "magically" available all the runtime values - stored in your variables or returned by your subroutines - inside a static template file. B<There's usually no need to assign values to the object>. Template outputs are linked to runtime values by their I<identifiers>, which are added to the template in the form of simple I<labels> or I<blocks> of content.
 
     a label: {identifier}
     a block: {identifier} content of the block {/identifier}
@@ -87,7 +87,7 @@ On the other side, the programmer has just to define variables and subroutines a
 
 There are several "similar" modules, so why yet another one? These features are the answer:
 
-=over 2
+=over
 
 =item * Simple, flexible and powerful to use
 
@@ -141,25 +141,25 @@ The Text::MagicTemplate object is a blessed array containing locations that it u
 
 Text::MagicTemplate compares any I<label identifier> defined in your template with any I<variable> or I<subroutine identifier> (for package locations) or I<key> (for hash locations) defined in each stored location. When it find a match, it looks for the value. If the value represents a CODE, it will be executed (passing to the subroutine the content of the block itself as a parameter) to achieve a returned value; if the value represents a reference, it will be dereferenced until the actual value will be achieved.
 
-B<The TYPE of the found value will determine the behaviour of MagicTemplate>:
+B<The VALUE TYPE of the found value will determine the behaviour of MagicTemplate>:
 
-=over 2
-
-=item *
-
-An B<UNDEF> value will B<delete> I<label> or I<block>.
+=over
 
 =item *
 
-A B<SCALAR> type will B<replace> I<label> or I<block> with the scalar value.
+An B<UNDEF> value type will B<delete> I<label> or I<block>.
 
 =item *
 
-A B<HASH> type will set that HASH as a B<temporary location> for the lookup of the I<block>. Text::MagicTemplate first uses that location to look up the identifiers contained in the block; then, if unsuccessful, it will search into the stored locations.
+A B<SCALAR> value type will B<replace> I<label> or I<block> with the scalar value.
 
 =item *
 
-An B<ARRAY> type will B<generate a loop>, merging each value in the array with the the I<block> and replacing the block with the sequence of the outputs.
+A B<HASH> value type will set that HASH as a B<temporary location> for the lookup of the I<block>. Text::MagicTemplate first uses that location to look up the identifiers contained in the block; then, if unsuccessful, it will search into the stored locations.
+
+=item *
+
+An B<ARRAY> value type will B<generate a loop>, merging each value in the array with the the I<block> and replacing the block with the sequence of the outputs.
 
 =back
 
@@ -221,7 +221,7 @@ Text::MagicTemplate can execute subroutines from your code: when you use a block
 
 This example show you how to allow the designer to pass some parameters to a subroutine in your code.
 
-=over 2
+=over
 
 =item the template
 
@@ -255,7 +255,7 @@ The sub 'matrix' receive the content of the template block as a single parameter
 
 This example represents the maximum degree of inclusion of perl code into a template: in this situation, virtually any code inside the 'perl_eval' block will be executed from the template. For obvious reasons you should use this type of configuration ONLY if you are the programmer AND the designer.
 
-=over 2
+=over
 
 =item the template
 
@@ -283,7 +283,7 @@ Note that the default syntax markers ({/}) could somehow clash with perl blocks,
 
 =head1 METHODS
 
-=over 2
+=over
 
 =item new ( [lookup_list] )
 
@@ -298,7 +298,7 @@ If you want to make available all the identifiers of your current package, just 
     $mt = new Text::MagicTemplate __PACKAGE__ ;
 
 
-If you want to keep unavailable some variable or subroutine from the template, you can pass just the reference of some hash containing just the identifiers used in the template. This is the best method to use the module IF you allow untrustly people to edit the template AND if you have any potentially dangerous subroutine in your code. (see L<"CAVEATS">).
+If you want to keep unavailable some variable or subroutine from the template, you can pass just the reference of some hash containing just the identifiers used in the template. This is the best method to use the module IF you allow untrustworthy people to edit the template AND if you have any potentially dangerous subroutine in your code. (see L<"CAVEATS">).
 
     # lookup in %my_hash only
     $mt = new Text::MagicTemplate \%my_hash ;
@@ -357,7 +357,7 @@ B<Examples>
     ... Text::MagicTemplate::HTML->no_code_execution
     ...
 
-=over 2
+=over
 
 =item syntax ( START_MARKER, END_MARKER_ID, END_MARKER )
 
@@ -387,13 +387,13 @@ The syntax() static method returns the list of the markers:
 
 See L<"Redefine Syntax"> to have more details.
 
-=item no_code_execution ()
+=item code_execution_OFF ()
 
 This static method disables the execution of subroutines from your code. (see L<"CAVEATS"> for details).
 
-=item code_execution ()
+=item code_execution_ON ()
 
-This static method enables the execution of subroutines from your code. Since this feature is enabled by default, you need it only if you have used no_code_execution() static method before.
+This static method enables the execution of subroutines from your code. Since this feature is enabled by default, you need it only if you have used the code_execution_OFF() static method before.
 
 =item get_block ( template [, identifier] )
 
@@ -418,24 +418,19 @@ This static method sets the content of the block (or blocks) I<identifier> insid
     # this returns a ref to the changed template content,
     $changed_content = Text::MagicTemplate->set_block ( '/temp/template_file.html', 'my_old_block', $new_content );
 
-=back
+=item set_ID_output ()
 
-=head1 CONSTANTS
-
-Text::MagicTemplates utilizes constants to change some behaviour.
-
-=over 2
-
-=item $Text::MagicTemplate::ID_OUTPUT
-
-A true value of this constant will generate a pretty formatted output of only the identifiers present in the template. Thus the programmer can pass a description of each label and block within a template to a designer.
-
-To activate this behaviour you must set  the constant to true at compile time and before the use of the module. Example:
-
-    BEGIN { $Text::MagicTemplate::ID_OUTPUT++ }
-    use Text::MagicTemplate::HTML;
+Calling this method will redefine some behaviours of the module, so your program will generate a pretty formatted output of only the identifiers present in the template. Thus the programmer can pass a description of each label and block within a template to a designer
 
 (see L<"Prepare the identifiers description list">)
+
+=item no_code_execution ()
+
+Deprecated method maintained for backward compatibility: use code_execution_OFF() instead.
+
+=item code_execution ()
+
+Deprecated method maintained for backward compatibility: use code_execution_ON() instead.
 
 =back
 
@@ -451,11 +446,11 @@ To include a file in a template just set a label with the pathname of the file a
 
 The file will be included in place of the label and if it is a template, it will be processed as usual.
 
-=over 2
+=over
 
 =head2 Redefine Syntax
 
-=over 2
+=over
 
 =item by using a prebuilt syntax module
 
@@ -480,7 +475,7 @@ Redefine the markers and save this code as file F<myCustomSyntax.pm>
     use Text::MagicTemplate;
     push @ISA, qw(Text::MagicTemplate);
 
-    __PACKAGE__->syntax qw|__ END_ __|; # redefine these values as needed
+    __PACKAGE__->syntax ( qw|__ END_ __| ); # redefine these values as needed
 
     1;
 
@@ -505,7 +500,7 @@ If you write some custom syntax module - useful for any particular output - plea
 
 A quick way to setup a template in 4 simple steps is the following:
 
-=over 2
+=over
 
 =item 1 Prepare an output
 
@@ -527,7 +522,7 @@ If you have any area that will be repeated by a loop or that will be printed jus
 
 These are a couple of templates that use a HTML friendly sintax (implemented in B<Text::MagicTemplate::HTML>). The output will be the same for both templates, with or without placeholders: the difference is the way you can look at the template.
 
-=over 2
+=over
 
 =item template without placeholders
 
@@ -569,7 +564,7 @@ If you want to include in your template some area only for design purpose I<(for
 
 If you want to label some area in your template I<(for example to extract the area to mix with another template)>, just transform it into a block and give it an identifier that will always be defined in your code. A convenient way to do so is to set the identifier to a reference to an empty hash. This will generate the output of the block and will do the lookup into the stored locations.
 
-=over 2
+=over
 
 =item the code
 
@@ -583,7 +578,7 @@ If you want to label some area in your template I<(for example to extract the ar
 
 =head2 Build a loop
 
-=over 2
+=over
 
 =item the template
 
@@ -619,7 +614,7 @@ You should have some array of hashes (or a reference to) defined somewhere:
 
 =head2 Build a nested loop
 
-=over 2
+=over
 
 =item the template
 
@@ -684,7 +679,7 @@ Note that the value of the keys I<'details'> are a reference to an array of hash
 
 =head2 Setup an if-else condition
 
-=over 2
+=over
 
 =item the template
 
@@ -721,7 +716,7 @@ Note that C<$OK_block> and C<$NO_block> should not return a SCALAR value, that w
 
 =head2 Setup a switch condition
 
-=over 2
+=over
 
 =item the template
 
@@ -772,7 +767,7 @@ A typical application of this capability is the template of a HTML table of cont
 
 Then a simple C<modify_link> subroutine - defined in your program - will return a self-pointing link that Text::MagicTemplate::HTML will put in the output in place of the static link. See the example below:
 
-=over 2
+=over
 
 =item the template
 
@@ -804,12 +799,11 @@ Working links pointing to your program, defining different query strings.
 
 If you have to pass to a webmaster the description of every identifier in your program utilized by any label or block, Text::MagicTemplate can help you by generating a pretty formatted list of all the identifiers (from labels and blocks) present in any output printed by your program. Just follow these steps:
 
-=over 2
+=over
 
-=item 1 Add the following BEGIN block anywhere before the use statement:
+=item 1 Add the following line anywhere before printing the output:
 
-    BEGIN { $Text::MagicTemplate::ID_OUTPUT++ }
-    use Text::MagicTemplate::HTML;
+    Text::MagicTemplate->set_ID_output;
 
 =item 2 Capture the outputs of your program
 
@@ -835,7 +829,7 @@ However, since the module is just about 100 lines of code, you should consider t
 
 This module can execute the subroutines of your code whenever it matches a label or block identifier with the subroutine identifier. Though unlikely, it is possible in principle that someone sneaks the correct identifier from your code, therefore, if you have any potentially dangerous subroutine in your code, you should restrict this capability. To do this, you can use the C<no_code_execution()> static method, or pass only explicit locations to the C<new()> method.
 
-=over 2
+=over
 
 =item potentially unsafe code
 
@@ -872,7 +866,11 @@ With this code the lookup is restricted to just the identifiers used in the temp
 
 =head1 GLOSSARY
 
-=over 2
+=over
+
+=item behaviour
+
+The action generated by Text::MagicTemplate and triggered by the value type. (i.e. an UNDEF value type trigger the deletion of the label or the block, a ARRAY value type generate a loop).
 
 =item block
 
@@ -953,7 +951,11 @@ The I<output> is the result of the merger of runtimes data with a template
 
 =item template
 
-A I<template> is a text content or a text file (plain, HTML, XML, etc.) containing some I<label> or I<block>.
+A I<template> is a text content or a text file (i.e. plain, HTML, XML, etc.) containing some I<label> or I<block>.
+
+=item value type
+
+The type of the value found by a lookup (i.e. UNDEF, SCALAR, HASH, ARRAY), that trigger a specific behaviour.
 
 =back
 

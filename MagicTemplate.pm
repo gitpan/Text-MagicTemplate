@@ -1,38 +1,30 @@
 package Text::MagicTemplate;
-$VERSION = '1.23';
+$VERSION = '1.25';
+use 5.005;
 use Carp qw ( croak );
 use strict; no strict "refs";
+
+__PACKAGE__->syntax ( qw|{ / }| );
 
 sub new
 {
     my $c = shift;
-    @_ || push @_, caller;
-    $c->syntax || $c->syntax qw|{ / }| ;
-    defined ${$c.'::_CODE_EXECUTION'} || $c->code_execution;
-    bless \@_, $c;
+    my $s ;
+    @_ ? @$s = @_ : $s->[0] = (caller)[0];
+    bless $s, $c;
 }
 
 sub syntax
 {
     my $c = shift;
-    (${$c.'::_START'}, ${$c.'::_END_ID'}, ${$c.'::_END'}) = map quotemeta, @_ if @_;
+    (${$c.'::_START'}, ${$c.'::_END_ID'}, ${$c.'::_END'}) = map qr($_), @_ if @_;
     (${$c.'::_START'}, ${$c.'::_END_ID'}, ${$c.'::_END'});
 }
 
-sub code_execution    { ${shift().'::_CODE_EXECUTION'} = 1 }
-sub no_code_execution { ${shift().'::_CODE_EXECUTION'} = 0 }
-
-sub print
-{
-    my ($s) = shift;
-    print ${$s->output(@_)};
-}
-
-sub output
-{
-    my ($s) = shift;
-    \$s->_block( ${$s->get_block(@_)} );
-}
+sub print              { print ${&output} }
+sub output             { \$_[0]->_block( ${&get_block} ) }
+sub code_execution_ON  { ${shift().'::_NO_CODE'} = 0 }
+sub code_execution_OFF { ${shift().'::_NO_CODE'} = 1 }
 
 sub get_block
 {
@@ -42,7 +34,7 @@ sub get_block
     if (ref $temp) { $temp = $$temp }
     else           { open INP, $temp or croak "Error opening template file \"$temp\" ($!)";
                      $temp = do {local $/; <INP>}; close INP; }
-    $temp =~ s/ $S ('|") (.*?) \1 $E / ${$c->get_block($2)} /xgse;   # include
+    $temp =~ s/ $S ('|") (.*?) \1 $E /${$c->get_block($2)}/xgse;   # include
     ($temp) = $temp =~ /($S $id $E .*? $S $I $id $E)/xs if $id;
     \$temp;
 }
@@ -74,7 +66,7 @@ sub _lookup
         if (not ref $location)
         {
             local *sym = '*'.$location.'::'.$id;
-            if    (defined &{*sym} and ${ref ($s).'::_CODE_EXECUTION'}) { return $s->_value ($content, &{*sym}($content)) }
+            if    (defined &{*sym} and not ${ref ($s).'::_NO_CODE'}) { return $s->_value ($content, &{*sym}($content)) }
             elsif (defined ${*sym}) { return $s->_value ($content, ${*sym}) }
             elsif (defined @{*sym}) { return $s->_loop  ($content, \@{*sym}) }
             elsif (defined %{*sym}) { return $s->_block ($content, \%{*sym}) }
@@ -88,7 +80,7 @@ sub _lookup
 sub _value
 {
     my ($s, $content, $value) = @_;
-    if    (ref $value eq 'CODE' and ${ref ($s).'::_CODE_EXECUTION'})  { return $s->_value ($content, &$value($content)) }
+    if    (ref $value eq 'CODE' and not ${ref ($s).'::_NO_CODE'})  { return $s->_value ($content, &$value($content)) }
     elsif (not ref $value)        { return $value }
     elsif (ref $value eq 'SCALAR'){ return $$value }
     elsif (ref $value eq 'ARRAY') { return $s->_loop  ($content, $value) }
@@ -103,10 +95,13 @@ sub _loop
     $loop_content;
 }
 
-if ($Text::MagicTemplate::ID_OUTPUT)
+sub set_ID_output
 {
     require Text::MagicTemplate::Utilities;
     import Text::MagicTemplate::Utilities qw ( _block ) ; # redefine subs
 }
+
+sub code_execution     { &code_execution_ON }  # deprecated alias
+sub no_code_execution  { &code_execution_OFF } # deprecated alias
 
 1;
