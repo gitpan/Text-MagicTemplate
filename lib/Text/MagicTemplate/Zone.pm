@@ -1,131 +1,178 @@
 package Text::MagicTemplate::Zone ;
-$VERSION = 3.41                   ;
-use 5.005                         ;
-use strict                        ;
-our $AUTOLOAD                     ;
-use constant OK => 1              ;
+$VERSION = 3.43                   ;
 
-BEGIN
-{
-  no strict 'refs' ;
-  # read-only properties subs
-  foreach my $n ( qw| id attributes container is_main mt _t | )
-  { *$n = sub { $_[0]->{$n} }
-  }
-  # read-write lvalue properties subs
-  foreach my $n ( qw| param location value output | )
-  { *$n = sub :lvalue { $_[0]->{$n}=$_[1] if defined $_[1] ;
-                        $_[0]->{$n} }
-  }
-  # processes subs
-  foreach my $n ( qw| zone text output post | )
-  { *{"${n}_process"}
-        = sub { my $ch = $_[0]->{mt}{"-${n}_handlers"} or return;
-                HANDLER: foreach my $h (@$ch){ return OK if $h->(@_) } }
-  }
-}
+; use 5.005
+; use strict
+; our $AUTOLOAD
+; use constant OK => 1
+; my @temp_properties = qw | mt
+                             container
+                             level
+                           |
+; *DESTROY = *post_process
+; *merge   = *content_process  # deprecated
 
-sub value_process
-{
-  my ($z) = @_ ;
-  return unless defined $z->{value} ;
-  my $ch = $z->{mt}{-value_handlers} or return ;
-  HANDLER: foreach my $h (@$ch) { return OK if $h->(@_) }
-}
 
-sub AUTOLOAD :lvalue
-{
-  (my $n = $AUTOLOAD) =~ s/.*://;
-  no strict 'refs' ;
-  *$AUTOLOAD = sub :lvalue { $_[0]->{$n}=$_[1] if defined $_[1];
-                             $_[0]->{$n} } ;
-  goto &$AUTOLOAD ;
-  my $dummy ; # to make :lvalue work in AUTOLOAD
-}
+; BEGIN
+   { no strict 'refs'
+   # read-only properties subs
+   ; foreach my $n qw| id
+                       attributes
+                       container
+                       is_main
+                       mt
+                       _t
+                     |
+      { *$n = sub
+               { $_[0]->{$n}
+               }
+      }
+   # read-write lvalue properties subs
+   ; foreach my $n qw| param
+                       location
+                       value
+                       output
+                     |
+      { *$n = sub :lvalue
+               { $_[0]->{$n} = $_[1]
+                               if defined $_[1]
+               ; $_[0]->{$n}
+               }
+      }
+   # processes subs
+   ; foreach my $n qw| zone
+                       text
+                       output
+                       post
+                     |
+      { *{"${n}_process"} = sub
+                             { my $ch = $_[0]->{mt}{"-${n}_handlers"} || return
+                             ; HANDLER:
+                               foreach my $h ( @$ch )
+                                { return OK if $h->(@_)
+                                }
+                             }
+      }
+   }
 
-*DESTROY = *post_process ;
+; sub new
+   { bless $_[1], $_[0]
+   }
 
-sub new { bless $_[1], $_[0] }
+; sub AUTOLOAD :lvalue
+   { (my $n = $AUTOLOAD) =~ s/.*://
+   ; no strict 'refs'
+   ; *$AUTOLOAD = sub :lvalue
+                   { $_[0]->{$n} = $_[1]
+                                   if defined $_[1]
+                   ; $_[0]->{$n}
+                   }
+   ; goto &$AUTOLOAD
+   ; my $dummy  # to make :lvalue work in AUTOLOAD
+   }
 
-my @temp_properties = qw ( mt container level ) ;
+; sub value_process
+   { my ($z) = @_
+   ; defined $z->{value} || return
+   ; my $ch = $z->{mt}{-value_handlers} || return
+   ; HANDLER:
+     foreach my $h ( @$ch )
+      { return OK if $h->(@_)
+      }
+   }
 
-sub level { ($_[0]->{level} || 0) - 1 }
+; sub content_process
+   { my ($z) = @_
+   ; defined $z->{_e} || return
+   ; ZONE:
+     for ( my $i  = $z->{_s}
+         ;    $i <= $z->{_e}
+         ;    $i++
+         )
+      { my $item = $z->{_t}[$i][1]
+      ; if    ( not $item )                    # just text
+         { $z->text_process( $z->{_t}[$i][0] )
+         }
+        elsif ( ref $item eq 'HASH' )          # normal zone
+         { my $nz = ref($z)->new( { %$item
+                                  , level     => ($z->{level} || 0) + 1
+                                  , container => $z
+                                  , _t        => $z->{_t}
+                                  , mt        => $z->{mt}
+                                  }
+                                )
+         ; $i = $nz->{_e} + 1 if $nz->{_e}
+         ; next ZONE if $nz->zone_process
+         ; $nz->lookup_process
+         ; $nz->value_process
+         }
+        elsif ( $item->{is_main} )             # included file
+         { @$item{@temp_properties} = @$z{@temp_properties}   # init main zone
+         ; $item->content_process
+         ; delete @$item{@temp_properties}                    # reset main zone
+         }
+      }
+   }
 
-sub content_process
-{
-  my ($z) = @_ ;
-  $z->{_e} || return ;
-  ZONE: for (  my $i = $z->{_s} ; $i <= $z->{_e}; $i++ )
-  { my $item = $z->{_t}[$i][1] ;
-    if ( ! $item )                                       # text
-    { $z->text_process($z->{_t}[$i][0])
-    }
-    elsif ( ref $item eq 'HASH')                         # normal zone
-    { my $nz = ref($z)->new( { %$item ,
-                               level     => ($z->{level} || 0) + 1 ,
-                               container => $z                     ,
-                               _t        => $z->{_t}               ,
-                               mt        => $z->{mt}               } ) ;
-      $i = $nz->{_e} + 1 if $nz->{_e}  ;
-      next ZONE if $nz->zone_process ;
-      $nz->lookup_process            ;
-      $nz->value_process             ;
-    }
-    elsif ( $item->{is_main} )                            # included file
-    { @$item{@temp_properties} = @$z{@temp_properties} ;  # init main zone
-      $item->content_process ;
-      delete @$item{@temp_properties} ;                   # reset main zone
-    }
-  }
-}
+; sub lookup_process
+   { my ($z) = @_
+   ; defined $z->{value} && return
+   ; $z->{value} = $z->lookup
+   }
 
-*merge = *content_process ; # deprecated
+; sub lookup
+   { my ( $z, $id ) = @_
+   ; $id ||= $z->{id}
+   ; my $val
+   ; for ( my $az = $z->{container}
+         ;    $az->{container}
+         ;    $az = $az->{container}
+         )
+      { $val = $z->_lookup( $az->{value}, $id )
+      ; return $val if defined $val
+      }
+   ; foreach my $l ( @{$z->{mt}{_temp_lookups}}
+                   , @{$z->{mt}{-lookups}}
+                   )
+      { $val = $z->_lookup( $l, $id )
+      ; return $val if defined $val
+      }
+   ; undef
+   }
 
-sub lookup_process
-{
-  my ($z) = @_ ;
-  return if defined $z->{value} ;
-  $z->{value} = $z->lookup ;
-}
+; sub _lookup
+   { my ($z, $l, $id) = @_
+   ; return unless $l
+   ; $z->{location} = $l
+   ; if ( ref $l eq 'HASH' )
+      { $l->{$id}
+      }
+     else
+      { local *S = '*'.(ref $l||$l).'::'.$id
+      ; if    (defined ${*S}    ) { ${*S}     }
+        elsif (defined *S{CODE} ) { *S{CODE}  }
+        elsif (defined *S{ARRAY}) { *S{ARRAY} }
+        elsif (defined *S{HASH} ) { *S{HASH}  }
+        else                      { undef     }
+      }
+   }
 
-sub lookup
-{
-  my ($z, $id) = @_ ;
-  $id ||= $z->{id} ;
-  my $val ;
-  for ( my $az=$z->{container} ; $az->{container} ; $az=$az->{container} )
-  { return $val if defined ($val = $z->_lookup($az->{value}, $id))
-  }
-  foreach my $l ( @{$z->{mt}{_temp_lookups}}, @{$z->{mt}{-lookups}} )
-  { return $val if defined ($val = $z->_lookup($l, $id))
-  }
-  undef
-}
+; sub level
+   { ($_[0]->{level} || 0) - 1
+   }
 
-sub _lookup
-{
-  my ($z, $l, $id) = @_ ;
-  return unless $l ;
-  $z->{location} = $l ;
-  if (ref $l eq 'HASH'){ $l->{$id} }
-  else
-  { local *S = '*'.(ref $l||$l).'::'.$id ;
-    if    (defined ${*S}    ) { ${*S}     }
-    elsif (defined *S{CODE} ) { *S{CODE}  }
-    elsif (defined *S{ARRAY}) { *S{ARRAY} }
-    elsif (defined *S{HASH} ) { *S{HASH}  }
-    else                      { undef     }
-  }
-}
+; sub content
+   { my ($z) = @_
+   ; defined $z->{_e} || return
+   ; join '' , map { $_->[0]
+                   }
+                   @{$z->{_t}} [ $z->{_s}
+                                 ..
+                                 $z->{_e}
+                               ]
+   }
 
-sub content
-{
-  my ($z) = @_ ;
-  return unless $z->{_e};
-  join '', map {$_->[0]} @{$z->{_t}}[$z->{_s}..$z->{_e}]
-}
-
-1;
+; 1
 
 __END__
 
@@ -133,7 +180,7 @@ __END__
 
 Text::MagicTemplate::Zone - The Zone object
 
-=head1 VERSION 3.41
+=head1 VERSION 3.43
 
 =head1 DESCRIPTION
 

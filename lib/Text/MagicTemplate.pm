@@ -1,532 +1,629 @@
-package Text::MagicTemplate    ;
-$VERSION = 3.41                ;
-use 5.005                      ;
-use Carp qw ( croak )          ;
-use strict                     ;
-use Text::MagicTemplate::Zone  ;
-use AutoLoader 'AUTOLOAD'      ;
-use File::Spec                 ;
-use constant NEXT_HANDLER => 0 ;
-use constant LAST_HANDLER => 1 ;
-our %CACHE                     ;  
+package Text::MagicTemplate ;
+$VERSION = 3.43             ;
+use AutoLoader 'AUTOLOAD'   ;
 
-our @autoloaded = qw ( _EVAL_
-                       _EVAL_ATTRIBUTES_
-                       TRACE_DELETIONS
-                       INCLUDE_TEXT
-                       TableTiler
-                       FillInForm
-                      ) ;
-
+; use strict
+; use 5.005
+; use Carp
+  qw| croak
+    |
+; use Text::MagicTemplate::Zone
+; use File::Spec
+; require Exporter
+; use constant NEXT_HANDLER => 0
+; use constant LAST_HANDLER => 1
+; our @ISA = 'Exporter'
+; our @EXPORT_OK   = qw| NEXT_HANDLER
+                         LAST_HANDLER
+                       |
+; our %CACHE
+; our @autoloaded = qw | _EVAL_
+                         _EVAL_ATTRIBUTES_
+                         TRACE_DELETIONS
+                         INCLUDE_TEXT
+                         TableTiler
+                         FillInForm
+                       |
+                       
 # predeclaration of autoloaded methods
-use subs @autoloaded ;
+; use subs @autoloaded
 
-sub import
-{
-  my (undef, $directive, @subs) = @_ ;
-  if ($directive && ( $directive eq '-compile' ))
-  {
-    no strict 'refs' ;
-    @subs = @autoloaded unless @subs ;
-    foreach my $sub (@subs) { &$sub }
-  }
-}
+; sub import
+   { my ($pkg, $directive, @subs) = @_
+   ; if (  $directive
+        && $directive eq '-compile'
+        )
+      { no strict 'refs'
+      ; @subs = @autoloaded unless @subs
+      ; my %auto
+      ; @auto{@autoloaded} = ()
+      ; foreach my $sub ( @subs )
+         { exists $auto{$sub}
+           or croak "'$sub' is not an autoloaded handler"
+         ; &$sub()  # no argument for sure
+         }
+      }
+     else
+      { $pkg->export_to_level(1, @_)
+      }
+   }
 
-sub new
-{
-  my ($c) = shift ;
-  my ($s) = @_ ;
-  ref $s eq 'HASH' or $s = {@_} ;
-  bless $s, $c ;
-  foreach (keys %$s)
-  { $s->{"-$_"} = delete $s->{$_} unless /^-/
-  }
-  foreach (values %$s)
-  { $_ = [$_] unless ref eq 'ARRAY'
-  }
-  $s->{-markers}       ||= $s->DEFAULT_MARKERS        ;
-  $s->{-text_handlers} ||= $s->DEFAULT_TEXT_HANDLERS  ;
-  $s->{-zone_handlers} ||= $s->DEFAULT_ZONE_HANDLERS  ;
-  $s->{-value_handlers}||= $s->DEFAULT_VALUE_HANDLERS ;
-  $s->{-post_handlers} ||= $s->DEFAULT_POST_HANDLERS  ;
-  $s->{-options}       ||= $s->DEFAULT_OPTIONS        ;
-  $s->{-options}         = { map { /^(no_)*(.+)$/; $2=>$1?0:1 }
-                             @{$s->{-options}} }      ;
-  $s->{-lookups}       ||= [ (caller)[0] ]            ;
-  foreach my $n ( qw(zone value post) )
-  { $s->{"-${n}_handlers"} &&= [ $s->_Hload($s->{"-${n}_handlers"}, $n) ]
-  }
-  $s ;
-}
+; sub new
+   { my ($c) = shift
+   ; my ($s) = @_
+   ; $s = { @_ }
+          unless ref $s eq 'HASH'
+   ; bless $s, $c
+   ; foreach ( keys %$s )
+      { $s->{"-$_"} = delete $s->{$_}
+                      unless /^-/
+      }
+   ; foreach ( values %$s )
+      { $_ = [ $_ ]
+             unless ref eq 'ARRAY'
+      }
+   ; $s->{-markers}       ||= $s->DEFAULT_MARKERS
+   ; $s->{-text_handlers} ||= $s->DEFAULT_TEXT_HANDLERS
+   ; $s->{-zone_handlers} ||= $s->DEFAULT_ZONE_HANDLERS
+   ; $s->{-value_handlers}||= $s->DEFAULT_VALUE_HANDLERS
+   ; $s->{-post_handlers} ||= $s->DEFAULT_POST_HANDLERS
+   ; $s->{-lookups}       ||= [ (caller)[0] ]
+   ; $s->{-options}       ||= $s->DEFAULT_OPTIONS
+   ; $s->{-options}         = { map { /^(no_)*(.+)$/
+                                    ; $2 => $1 ? 0 : 1
+                                    }
+                                    @{$s->{-options}}
+                              }
+   ; foreach my $n qw| zone
+                       value
+                       post
+                     |
+      { $s->{"-${n}_handlers"}
+        &&= [ $s->_Hload( $s->{"-${n}_handlers"}
+                        , $n
+                        )
+            ]
+      }
+   ; $s
+   }
 
-sub _Hload
-{
-  my ($s, $arr, $w) = @_ ;
-  map
-  {
-    if    (ref eq 'CODE') { $_ }
-    elsif (!ref)
-    { no strict 'refs' ;
-      my $ref ;
-      eval { $ref = $s->$_ } ;
-      if ($@) { my $h = join '_', $_, uc $w,'HANDLERS'; eval{$ref = $s->$h} }
-      if ($@) { croak "Unknown handler \"$_\"" }
-      if    (ref $ref eq 'ARRAY') { $s->_Hload($ref, $w) }
-      elsif (ref $ref eq 'CODE' ) { $ref                 }
-    }
-  } @$arr
-}
+; sub _Hload
+   { my ($s, $arr, $n) = @_
+   ; map
+      { if ( ref eq 'CODE' )
+         { $_
+         }
+        elsif ( not ref )
+         { no strict 'refs'
+         ; my $ref
+         ; eval
+            { $ref = $s->$_
+            }
+         ; if ( $@ )
+            { my $h = join '_'
+                    , $_
+                    , uc $n
+                    ,'HANDLERS'
+            ; eval
+               { $ref = $s->$h
+               }
+            }
+         ; if ( $@ )
+            { croak "Unknown handler $_"
+            }
+         ; if ( ref $ref eq 'ARRAY' )
+            { $s->_Hload( $ref, $n )
+            }
+           elsif ( ref $ref eq 'CODE' )
+            { $ref
+            }
+         }
+      }
+      @$arr
+   }
 
-sub _re
-{
-  my ($s) = @_ ;
-  unless ( $s->{_re} ) # execute it just the first time AND if it has to parse
-  {
-    unless ( @{$s->{-markers}}==3 )
-    {
-      no strict 'refs' ;
-      my $m = $s->{-markers}[0] ;
-      eval { $s->{-markers} = $s->$m } ;
-      if ($@) { $m .='_MARKERS'; eval { $s->{-markers} = $s->$m } }
-      if ($@) { croak "Unknown markers \"$m\""}
-    }
-    $s->{-markers} = [ map {qr/$_/s}
-                           @{$s->{-markers}},
-                           '(?:(?!'.$s->{-markers}[2].').)*',
-                           '\w+' ] ;
-    my ($S, $I, $E, $A, $ID) = @{$s->{-markers}} ;
-    $s->{_re}{label}         = qr/$S$I*$ID$A$E/s                  ;
-    $s->{_re}{start_label}   = qr/$S($ID)($A)$E/s                 ;
-    $s->{_re}{end_label}     = qr/$S$I($ID)$E/s                   ;
-    $s->{_re}{include_label} = qr/$S\bINCLUDE_TEMPLATE\s+($A)$E/s ;
-  }
-  wantarray
-    ? @{$s->{-markers}}
-    : $s->{_re} ;
-}
+; sub _re
+   { my ($s) = @_
+   ; unless ( $s->{_re} ) # execute it just the first time AND if it has to parse
+      { unless ( @{$s->{-markers}} == 3 )
+         { no strict 'refs'
+         ; my $m = $s->{-markers}[0]
+         ; eval
+            { $s->{-markers} = $s->$m
+            }
+         ; if ( $@ )
+            { $m .= '_MARKERS'
+            ; eval
+               { $s->{-markers} = $s->$m
+               }
+            }
+           if ( $@ )
+            { croak "Unknown markers $m"
+            }
+         }
+      ; $s->{-markers} = [ map { qr/$_/s
+                               }
+                               ( @{$s->{-markers}}
+                               , '(?:(?!' .$s->{-markers}[2]. ').)*'
+                               , '\w+'
+                               )
+                         ]
+      ; my ($S, $I, $E, $A, $ID) = @{$s->{-markers}}
+      ; $s->{_re}{label}         = qr/$S$I*$ID$A$E/s
+      ; $s->{_re}{start_label}   = qr/$S($ID)($A)$E/s
+      ; $s->{_re}{end_label}     = qr/$S$I($ID)$E/s
+      ; $s->{_re}{include_label} = qr/$S\bINCLUDE_TEMPLATE\s+($A)$E/s
+      }
+   ; wantarray
+      ? @{$s->{-markers}}
+      : $s->{_re}
+   }
 
-sub get_block
-{
-  my ($s, $t, $id) = @_ ;
-  $t = $s->read_temp($t) unless ref $t eq 'SCALAR' ;
-  $$t or croak 'The template content is empty' ;
-  my ($S, $I, $E, $A) = $s->_re ;
-  $$t =~ s/ $S ('|") (.*?) \1 $E /${$s->get_block($2)}/xgse; # deprecated include
-  if ($id) { ($$t) = $$t =~ /( $S$id$A$E
-                             (?: (?! $S$id$A$E) (?! $S$I$id$E) . )*
-                             $S$I$id$E )/xs }
-  $t ;
-}
+; sub get_block  # deprecated method
+   { my ($s, $t, $id) = @_
+   ; $t = $s->read_temp($t)
+          unless ref $t eq 'SCALAR'
+   ; $$t or croak 'The template content is empty'
+   ; my ($S, $I, $E, $A) = $s->_re
+   ; $$t =~ s/ $S ('|") (.*?) \1 $E
+             /${$s->get_block($2)}/xgse # deprecated include
+   ; if ( $id )
+      { ( $$t ) = $$t =~ / ( $S$id$A$E
+                           (?: (?! $S$id$A$E) (?! $S$I$id$E) . )*
+                           $S$I$id$E )
+                         /xs
+      }
+   ; $t
+   }
 
-sub read_temp
-{
-  my ($s, $t) = @_ ;
-  local $_ = $t || croak 'No template parameter passed';
-  if (ref eq 'GLOB' || ref \$_ eq 'GLOB'){ $_ = do{local $/; <$_>} }
-  elsif ($_ && !ref) { open _ or croak "Error opening template \"$_\": $^E" ;
-                       $_ = do{local $/; <_>}; close _ }
-  else  { croak 'Wrong template parameter type: '. (ref||'UNDEF') }
-  \$_ ;
-}
+; sub read_temp  # deprecated method
+   { my ($s, $t) = @_
+   ; local $_ = $t or croak 'No template parameter passed'
+   ; if (  ref     eq 'GLOB'  # file handler
+        || ref \$_ eq 'GLOB'
+        )
+      { $_ = do { local $/    # slurp in $_
+                ; <$_>
+                }
+      }
+     elsif ( $_ && not ref )  # it's a path
+      { open _ or croak "Error opening template \"$_\": $^E"
+      ; $_ = do { local $/    # slurp in $_
+                ; <_>
+                }
+      ; close _
+      }
+     else                     # it's something else
+      { croak 'Wrong template parameter type: '. ( ref || 'UNDEF' )
+      }
+   ; \$_
+   }
 
-sub set_block
-{
-  my ($s, $t, $id, $new) = @_ ;
-  my ($S, $I, $E, $A) = $s->_re ;
-  $t = $s->get_block($t);
-  $$t =~ s/ $S$id$A$E
-            (?: (?! $S$id$A$E) (?! $S$I$id$E) . )*
-            $S$I$id$E
-          /$$new||$new/xgse ;
-  $t ;
-}
+; sub set_block
+   { my ($s, $t, $id, $new) = @_
+   ; my ($S, $I, $E, $A) = $s->_re
+   ; $t = $s->get_block($t)
+   ; $$t =~ s/ $S$id$A$E
+               (?: (?! $S$id$A$E) (?! $S$I$id$E) . )*
+               $S$I$id$E
+             /$$new||$new/xgse
+   ; $t
+   }
 
-sub output
-{
-  my $s = shift ;
-  my $args ;
-  $args->{template} = shift;
-  $args->{lookups} = [ @_ ] if @_ ;
-  $s->_process( $args, $s->DEFAULT_OUTPUT_HANDLERS )
-}
+; sub output
+   { my $s = shift
+   ; my $args
+   ; $args->{template} = shift
+   ; $args->{lookups}  = [ @_ ] if @_
+   ; $s->_process( $args, $s->DEFAULT_OUTPUT_HANDLERS )
+   }
 
-sub print
-{
-  my $s = shift ;
-  my $args ;
-  $args->{template} = shift;
-  $args->{lookups} = [ @_ ] if @_ ;
-  $s->_process( $args, $s->DEFAULT_PRINT_HANDLERS )
-}
+; sub print
+   { my $s = shift
+   ; my $args
+   ; $args->{template} = shift
+   ; $args->{lookups}  = [ @_ ] if @_
+   ; $s->_process( $args, $s->DEFAULT_PRINT_HANDLERS )
+   }
 
-sub noutput
-{
-  my ($s, %args) = @_ ;
-  $args{lookups} = [ $args{lookups} ] unless ref $args{lookups} eq 'ARRAY' ;
-  $s->_process( \%args, $s->DEFAULT_OUTPUT_HANDLERS )
-}
+; sub noutput
+   { my ($s, %args) = @_
+   ; $args{lookups} = [ $args{lookups} ]
+                      unless ref $args{lookups} eq 'ARRAY'
+   ; $s->_process( \%args, $s->DEFAULT_OUTPUT_HANDLERS )
+   }
 
-sub nprint
-{
-  my ($s, %args) = @_ ;
-  $args{lookups} = [ $args{lookups} ] unless ref $args{lookups} eq 'ARRAY' ;
-  $s->_process( \%args, $s->DEFAULT_PRINT_HANDLERS )
-}
+; sub nprint
+   { my ($s, %args) = @_
+   ; $args{lookups} = [ $args{lookups} ]
+                      unless ref $args{lookups} eq 'ARRAY'
+   ; $s->_process( \%args, $s->DEFAULT_PRINT_HANDLERS )
+   }
 
-sub _process
-{
-  my ($h) = pop ;
-  my ($s, $args) = @_ ;
-  $s->{-output_handlers} ||= $h ;
-  $s->{-text_handlers}   ||= $s->{-output_handlers} ;
-  $s->{_temp_lookups} = $args->{lookups} if exists $args->{lookups}; # init temp
-  my $z = $s->load($args->{template}) ;
-  $z->{mt} = $s ;       # init top main zone
-  $z->content_process ;
-  delete $z->{mt} ;     # reset top main zone (if cached it does not retain $s)
-  delete $s->{_temp_lookups};                                        # reset temp
-  if ( defined $s->{output} )
-  { my $output = delete $s->{output} ;
-    return \$output;
-  }
-}
-
-sub load
-{
-  my ($s, $t) = @_ ;
-  # if it is a path and cache
-  if ( (not ref $t) && ($s->{-options}{cache}) )
-  {
-    my $path  = File::Spec->rel2abs($t) ;
-    -e $path or croak $^E ;
-    my $mtime  = (stat($path))[9];
-    exists $CACHE{$path}                  # if it is cached
+; sub _process
+   { my ($h) = pop
+   ; my ($s, $args) = @_
+   ; $s->{-output_handlers} ||= $h
+   ; $s->{-text_handlers}   ||= $s->{-output_handlers}
+   ; $s->{_temp_lookups}      = $args->{lookups}           # init temp
+                                if exists $args->{lookups}
+   ; my $z = $s->load( $args->{template} )
+   ; $z->{mt} = $s        # init top main zone
+   ; $z->content_process
+   ; delete $z->{mt}      # reset top main zone (if cached it doesn't retain $s)
+   ; delete $s->{_temp_lookups}                            # reset temp
+   ; return delete $s->{output}
+            if defined $s->{output}
+   }
+   
+; sub load
+   { my ($s, $t) = @_
+   ; if (  not ref( $t )           # if it is a path and cache
+        && $s->{-options}{cache}
+        )
+      { my $path = File::Spec->rel2abs($t)
+      ; -e $path or croak $^E
+      ; my $mtime = ( stat($path) )[9]
+      ;  exists $CACHE{$path}             # if it is cached
       && $mtime > $CACHE{$path}->{mtime}  # and old
-      && $s->purge_cache($path) ;         # purge $path from cache
-    unless ( exists $CACHE{$path} )       # if it is not cached
-    { $CACHE{$path}->{main_zone} = $s->_parse($s->get_block($path)) ;
-      $CACHE{$path}->{mtime}     = $mtime ;
-    }
-    $CACHE{$path}->{main_zone}{mt} = $s ;
-    return $CACHE{$path}->{main_zone}
-  }
-  else # if it is not a path or no_cache
-  { $s->_parse($s->get_block($t))
-  }
-}
+      && $s->purge_cache($path)           # purge $path from cache
+      ; unless ( exists $CACHE{$path} )   # if it is not cached
+         { $CACHE{$path}->{main_zone} = $s->_parse($s->get_block($path))
+         ; $CACHE{$path}->{mtime}     = $mtime
+         }
+      ; $CACHE{$path}->{main_zone}{mt} = $s
+      ; return $CACHE{$path}->{main_zone}
+      }
+     else                         # if it is not a path or no_cache
+      { $s->_parse( $s->get_block($t) )
+      }
+   }
 
-sub purge_cache
-{
-  my ($s, @paths) = @_ ;
-  return undef(%CACHE) unless @paths;
-  @paths  = map { File::Spec->rel2abs($_) } @paths ;
-  foreach my $path ( @paths ) { delete $CACHE{$path} }
-}
+; sub purge_cache
+   { my ($s, @paths) = @_
+   ; @paths || return undef %CACHE
+   ; @paths = map { File::Spec->rel2abs($_)
+                  }
+                  @paths
+   ; foreach my $path ( @paths )
+      { delete $CACHE{$path}
+      }
+   }
 
-sub _parse
-{
-  my ($s, $t) = @_ ;
-  my $re = $s->_re ;
-  my @temp =
-    map {
-          [ $_ ,
-            do {    /$re->{end_label}/     && $1
-                 || /$re->{include_label}/ && $s->load($1)
-                 || /$re->{start_label}/   && { id         => $1 ,
-                                                attributes => $2 } }
-          ]
-        } split /($re->{label})/, $$t ;
-  for ( my $i = $#temp; $i >= 0; $i-- )  # find end
-  {
-    my $id = $temp[$i]->[1] ;
-    next if (not $id or ref $id) ;
-    for( my ($ii,$l)=($i-1,0) ; $ii>=0 ; $ii--,$l++ ) # find THE start
-    {
-      my $the_start = $temp[$ii]->[1] ;
-      next unless ref $the_start ;            # next if not start
-      next unless $the_start->{id} eq $id ;   # next if not THE start
-      $the_start->{_s} = $ii + 1  ;
-      $the_start->{_e} = $ii + $l ;
-      last ;
-    }
-  }
-  new Text::MagicTemplate::Zone { _s      => 0      ,
-                                  _e      => $#temp ,
-                                  _t      => \@temp ,
-                                  is_main => 1      } ;
-}
+; sub _parse
+   { my ($s, $t) = @_
+   ; my $re = $s->_re
+   ; my @temp = map { [ $_
+                      , do {  /$re->{end_label}/     && $1
+                           || /$re->{include_label}/ && $s->load($1)
+                           || /$re->{start_label}/   && { id         => $1
+                                                        , attributes => $2
+                                                        }
+                           }
+                      ]
+                    }
+                    split /($re->{label})/ , $$t
+   ; for ( my $i  = $#temp                        # find end
+         ;    $i >= 0
+         ;    $i --
+         )
+      { my $id = $temp[$i]->[1]
+      ; next if ( not $id or ref $id )
+      ; for ( ( my $ii = $i-1                       # find THE start
+              , my $l  = 0
+              )
+            ; $ii >= 0     # condition
+            ; ( $ii --
+              , $l  ++
+              )
+            )
+         { my $the_start = $temp[$ii]->[1]
+         ; next unless ref $the_start             # next if not start
+         ; next unless $the_start->{id} eq $id    # next if not THE start
+         ; $the_start->{_s} = $ii + 1
+         ; $the_start->{_e} = $ii + $l
+         ; last
+         }
+      }
+   ; new Text::MagicTemplate::Zone { _s      => 0
+                                   , _e      => $#temp
+                                   , _t      => \@temp
+                                   , is_main => 1
+                                   }
+   }
 
 ############################## STANDARD HANDLERS ##############################
 
 # override these DEFAULT subs in subclasses to change defaults
 
-sub DEFAULT_VALUE_HANDLERS
-{
-  my ($s, @args) = @_ ;
-  [ $s->SCALAR      ,
-    $s->REF         ,
-    $s->CODE(@args) ,
-    $s->ARRAY       ,
-    $s->HASH        ] ;
-}
+; sub DEFAULT_ZONE_HANDLERS
+   {
+   }
+   
+; sub DEFAULT_POST_HANDLERS
+   {
+   }
+   
+; sub DEFAULT_TEXT_HANDLERS
+   {
+   }
 
-sub DEFAULT_ZONE_HANDLERS   { undef                                 }
-sub DEFAULT_POST_HANDLERS   { undef                                 }
-sub DEFAULT_TEXT_HANDLERS   { undef                                 }
-sub DEFAULT_PRINT_HANDLERS  { [ sub{ print $_[1]; NEXT_HANDLER } ]  }
-sub DEFAULT_OUTPUT_HANDLERS { [ sub{ $_[0]->{mt}{output} .= $_[1] ;
-                                   NEXT_HANDLER} ]                  }
-sub DEFAULT_OPTIONS         { [ qw| cache | ]                       }
-sub DEFAULT_MARKERS         { [ qw| { / } | ]                       }
-sub HTML_MARKERS            { [ qw| <!--{ / }--> | ]                }
+; sub DEFAULT_VALUE_HANDLERS
+   { my ($s, @args) = @_
+   ; [ $s->SCALAR
+     , $s->REF
+     , $s->CODE(@args)
+     , $s->ARRAY
+     , $s->HASH
+     ]
+   }
 
-sub HTML_VALUE_HANDLERS # value handler
-{
-  my ($s, @args) = @_ ;
-  [ $s->SCALAR      ,
-    $s->REF         ,
-    $s->CODE(@args) ,
-    $s->TableTiler  ,
-    $s->ARRAY       ,
-    $s->HASH        ,
-    $s->FillInForm  ] ;
-}
-                                                                         
-sub SCALAR # value handler
-{
-  sub
-  {
-    my ($z) = @_;
-    my $v = $z->{value};
-    if (!ref $v)                        # if it's a plain string
-    {
-      $z->{output} = $v        ;        # set output
-      $z->output_process( $v ) ;        # process the output (requires string)
-      LAST_HANDLER             ;
-    }
-  }
-}
+; sub DEFAULT_PRINT_HANDLERS
+   { [ sub
+        { print $_[1]
+        ; NEXT_HANDLER
+        }
+     ]
+   }
 
-sub REF # value handler
-{
-  sub
-  {
-    my ($z) = @_;
-    my $v = $z->{value};
-    if (ref $v =~ /^(SCALAR|REF)$/)     # if is a reference
-    {
-      $z->{value} = $$v ;               # dereference
-      $z->value_process ;               # process the new value
-      LAST_HANDLER      ;
-    }
-  }
-}
+; sub DEFAULT_OUTPUT_HANDLERS
+   { [ sub
+        { ${$_[0]->{mt}{output}} .= $_[1]
+        ; NEXT_HANDLER
+        }
+     ]
+   }
+  
+; sub DEFAULT_OPTIONS
+   { [ qw| cache | ]
+   }
+   
+; sub DEFAULT_MARKERS
+   { [ qw| { / } | ]
+   }
+   
+; sub HTML_MARKERS
+   { [ qw| <!--{ / }--> | ]
+   }
 
-sub ARRAY # value handler
-{
-  sub
-  {
-    my ($z) = @_;
-    my $v = $z->{value} ;
-    if (ref $v eq 'ARRAY')       # if it's an ARRAY
-    {
-      foreach my $item ( @$v ) # for each value in the array
-      {
-        # witout cloning the object
-        $z->{value} = $item ;           # set the value for the zone
-        $z->value_process   ;           # process it
+; sub HTML_VALUE_HANDLERS # value handler
+   { my ($s, @args) = @_
+   ; [ $s->SCALAR
+     , $s->REF
+     , $s->CODE(@args)
+     , $s->TableTiler
+     , $s->ARRAY
+     , $s->HASH
+     , $s->FillInForm
+     ]
+   }
+                                                                           
+; sub SCALAR # value handler
+   { sub
+      { my ($z) = @_
+      ; my $v = $z->{value}
+      ; if ( not ref $z->{value} )           # if it's a plain string
+         { $z->{output} = $z->{value}        # set output
+         ; $z->output_process( $z->{value} ) # process output (requires string)
+         ; LAST_HANDLER
+         }
       }
-      LAST_HANDLER ;
-    }
-  }
-}
+   }
 
-sub HASH # value handler
-{
-  sub
-  {
-    my ($z) = @_;
-    if (ref $z->{value} eq 'HASH')      # if it's a HASH
-    {
-      $z->content_process ;             # start again the process
-      LAST_HANDLER        ;
-    }
-  }
-}
+; sub REF # value handler
+   { sub
+      { my ($z) = @_
+      ; if (ref $z->{value} =~ /^(SCALAR|REF)$/)  # if is a reference
+         { $z->{value} = ${$z->{value}}           # dereference
+         ; $z->value_process                      # process the new value
+         ; LAST_HANDLER
+         }
+      }
+   }
 
-sub CODE # value handler
-{
-  my (undef, @args) = @_ ;
-  sub
-  {
-    my ($z) = @_;
-    my $v = $z->{value};
-    if ( ref $v eq 'CODE' )
-    {
-      my $l = $z->{location};
-      if ( length(ref $l) && eval { $l->isa(ref $l) } )  # if pass blessed obj
-      { $z->{value} = $z->{value}->($l, $z, @args) }     # set value to result
-      else { $z->{value} = $z->{value}->($z, @args) }    # set value to result
-      # 'unless' avoid infinite loop caused by undef sub
-      $z->value_process unless ($v eq $z->{value}) ;     # process the new value
-      LAST_HANDLER ;
-    }
-  }
-}
+; sub ARRAY # value handler
+   { sub
+      { my ($z) = @_
+      ; if (ref $z->{value} eq 'ARRAY')        # if it's an ARRAY
+         { foreach my $item ( @{$z->{value}} ) # for each value in the array
+            { $z->{value} = $item              # set the value for the zone
+            ; $z->value_process                # process it
+            }
+         ; LAST_HANDLER
+         }
+      }
+   }
+  
+; sub HASH # value handler
+   { sub
+      { my ($z) = @_
+      ; if (ref $z->{value} eq 'HASH')      # if it's a HASH
+         { $z->content_process              # start again the process
+         ; LAST_HANDLER
+         }
+      }
+   }
 
-
-sub ID_list
-{
-  my ($s, $ident, $end) = @_ ;
-  $ident ||= ' ' x 4 ;
-  $end   ||= '/'     ;
-  my $re   = $s->_re() ;
-  $s->{-text_handlers} = [ sub{} ] ; # does not print any text
-  $s->{-zone_handlers} =
-  [
-    sub  # takes control of the whole process
-    {
-      my ($z) = @_ ;
-      $z->output_process($ident x $z->level . $z->{id} . ":\n") ;
-      $z->content_process ;
-      if ( $z->{_e} && $z->content =~ /$re->{label}/ )
-      { $z->output_process($ident x $z->level . $end.$z->{id} . ":\n"); }
-      LAST_HANDLER ;
-    }
-  ]
-}
+; sub CODE # value handler
+   { my (undef, @args) = @_
+   ; sub
+      { my ($z) = @_
+      ; my $v = $z->{value}
+      ; if ( ref $v eq 'CODE' )
+         { my $l = $z->{location}
+         ; if (  length(ref $l)   # if blessed obj
+              && eval { $l->isa(ref $l) }
+              )
+            { $z->{value} = $z->{value}->($l, $z, @args) # set value to result
+            }
+           else                     # if not blessed obj
+            { $z->{value} = $z->{value}->($z, @args)     # set value to result
+            }
+         ; $z->value_process            # process the new value
+           unless ( $v eq $z->{value} ) # avoid infinite loop in undef sub
+         ; LAST_HANDLER
+         }
+      }
+   }
 
 
-1;
+; sub ID_list
+   { my ($s, $ident, $end) = @_
+   ; $ident ||= ' ' x 4
+   ; $end   ||= '/'
+   ; my $re   = $s->_re
+   ; $s->{-text_handlers} = [ sub{} ]  # does not print any text
+   ; $s->{-zone_handlers}
+     = [ sub  # takes control of the whole process
+          { my ($z) = @_
+          ; $z->output_process( $ident x $z->level
+                              . $z->{id}
+                              . ":\n"
+                              )
+          ; $z->content_process
+          ; if (  $z->{_e}                              # if it is a block
+               && $z->content =~ /$re->{label}/         # and contains labels
+               )
+             { $z->output_process( $ident x $z->level   # print the end
+                                 . $end
+                                 . $z->{id}
+                                 . ":\n"
+                                 )
+             }
+          ; LAST_HANDLER
+          }
+       ]
+   }
+
+; 1
 
 # START AutoLoaded handlers
 
 __END__
 
+# 'sub' must be at start of line to be found by AutoSplit
+#  no fancy coding here :-(
+
 sub _EVAL_ # zone handler
-{
-  sub
-  {
-    my ($z) = @_;
-    if ($z->{id} eq '_EVAL_')
-    {
-      $z->{value} = eval $z->content ;
-      NEXT_HANDLER ;
-      # lookup is skipped by the defined $z->value
-      # value_process is entered by default
-    }
-  }
-}
+   { sub
+      { my ($z) = @_;
+      ; if ( $z->{id} eq '_EVAL_' )
+         { $z->{value} = eval $z->content
+         ; NEXT_HANDLER
+         # lookup is skipped by the defined $z->value
+         # value_process is entered by default
+         }
+      }
+   }
 
 sub _EVAL_ATTRIBUTES_ # zone handler
-{
-  sub
-  {
-    my ($z) = @_ ;
-    if (defined $z->{attributes})
-    {
-      $z->{param} = eval( $z->{attributes} ) ;
-      NEXT_HANDLER ;
-      # $z->attributes should be a ref to a structure
-    }
-  }
-}
+   { sub
+      { my ($z) = @_
+      ; if ( $z->{attributes} )
+         { $z->{param} = eval $z->{attributes}
+         ; NEXT_HANDLER
+         # $z->attributes should be a ref to a structure
+         }
+      }
+   }
 
 sub TRACE_DELETIONS # zone handler
-{
-  sub
-  {
-    my ($z) = @_ ;
-    # do lookup and value processes as usual
-    $z->lookup_process ;
-    $z->value_process  ;
-   # if they fail to find a true output trace the deletion
-    if (not defined $z->{output})
-      { $z->output_process ('<<'.$z->{id}.' not found>>') }
-    elsif (not $z->{output})
-      { $z->output_process ('<<'.$z->{id}.' found but empty>>') }
-    LAST_HANDLER ;
-  }
-}
+   { sub
+      { my ($z) = @_
+      # do lookup and value processes as usual
+      ; $z->lookup_process
+      ; $z->value_process
+      # if they fail to find a true output trace the deletion
+      ; if    ( not defined $z->{output} )
+         { $z->output_process ( '<<' . $z->{id} . ' not found>>' )
+         }
+        elsif ( not $z->{output} )
+         { $z->output_process ( '<<' . $z->{id} . ' found but empty>>' )
+         }
+      ; LAST_HANDLER
+      }
+   }
 
 sub INCLUDE_TEXT # zone handler
-{
-  sub
-  {
-    my ($z) = @_;
-    if ($z->{id} eq 'INCLUDE_TEXT')
-    {
-      my $file = $z->{attributes} ;
-      local *I_TEXT;
-      open I_TEXT, $file or croak "Error opening text file \"$file\": $^E" ;
-      $z->text_process($_) while <I_TEXT> ;
-      close I_TEXT ;
-      LAST_HANDLER ;
-    }
-  }
-}
+   { sub
+      { my ($z) = @_
+      ; if ( $z->{id} eq 'INCLUDE_TEXT' )
+         { my $file = $z->{attributes}
+         ; local *I_TEXT
+         ; open I_TEXT, $file
+           or croak "Error opening text file \"$file\": $^E"
+         ; $z->text_process($_) while <I_TEXT>
+         ; close I_TEXT
+         ; LAST_HANDLER
+         }
+      }
+   }
 
 ############### HTML HANDLERS ##############
 
 sub TableTiler # value handler
-{
-  eval { require HTML::TableTiler; import HTML::TableTiler } ;
-  if ( $@ )
-  { warn "\"HTML::TableTiler\" is not installed on this system\n"  ;
-    sub {} ;
-  }
-  else
-  { sub
-    { my ($z) = @_ ;
-      if (ref $z->{value} eq 'ARRAY')
-      {
-        $z->{value} = eval
-                    {
-                      local $SIG{__DIE__};
-                      my $cont = $z->content ;
-                      HTML::TableTiler::tile_table( $z->{value},
-                                                    $cont && \$cont,
-                                                    $z->{attributes} )
-                    }     ;
-        $z->value_process ;
-        LAST_HANDLER      ;
+   { eval
+      { require HTML::TableTiler
+      ; import  HTML::TableTiler
       }
-    }
-  }
-}
+   ; if ( $@ )
+      { warn "\"HTML::TableTiler\" is not installed on this system\n"
+      ; return sub {}  # no action
+      }
+     else
+      { sub            # normal handler
+         { my ($z) = @_
+         ; if (ref $z->{value} eq 'ARRAY')
+            { $z->{value}
+              = eval { local $SIG{__DIE__}
+                     ; my $cont = $z->content
+                     ; HTML::TableTiler::tile_table( $z->{value}
+                                                   , $cont && \$cont
+                                                   , $z->{attributes}
+                                                   )
+                     }
+            ; $z->value_process
+            ; LAST_HANDLER
+            }
+         }
+      }
+   }
 
 sub FillInForm # value handler
-{
-  eval { require HTML::FillInForm; import HTML::FillInForm } ;
-  if ( $@ )
-  { warn "\"HTML::FillInForm\" is not installed on this system\n" ;
-    sub {} ;
-  }
-  else
-  { sub
-    { my ($z) = @_;
-      my $v = $z->{value} ;
-      if (ref $v && defined UNIVERSAL::can($v, 'param'))
-      {
-        $z->{value} = eval
-                    {
-                      local $SIG{__DIE__};
-                      my $cont = $z->content ;
-                      HTML::FillInForm->new->fill( scalarref => \$cont,
-                                                   fobject   => $z->{value} )
-                    }     ;
-        $z->value_process ;
-        LAST_HANDLER      ;
+   { eval
+      { require HTML::FillInForm
+      ; import  HTML::FillInForm
       }
-    }
-  }
-}
+   ; if ( $@ )
+      { warn "\"HTML::FillInForm\" is not installed on this system\n"
+      ; sub {}
+      }
+     else
+      { sub
+         { my ($z) = @_
+         ; if (  ref $z->{value}
+              && defined UNIVERSAL::can( $z->{value} , 'param' )
+              )
+            { $z->{value}
+              = eval { local $SIG{__DIE__}
+                     ; my $cont = $z->content
+                     ; HTML::FillInForm->new
+                                       ->fill( scalarref => \$cont
+                                             , fobject   => $z->{value}
+                                             )
+                     }
+            ; $z->value_process
+            ; LAST_HANDLER
+            }
+         }
+      }
+   }
 
 =head1 NAME
 
 Text::MagicTemplate - magic merger of runtime values with templates
 
-=head1 VERSION 3.41
+=head1 VERSION 3.43
 
 =head1 WARNING!
 
@@ -740,13 +837,9 @@ When you have to deal with a webmaster, you can easily print a pretty formatted 
 
 Change your code and Text::MagicTemplate will change its behaviour accordingly. In most cases you will not have to reconfigure, either the object, or the template.
 
-=item * Small footprint
-
-The MagicTemplate system code (including all the autoloaded handlers) is just about 500 lines of pure perl I<(easier to write that this documentation :-) )>.
-
 =item * Simply portable
 
-This module and its extensions are written in pure perl. You don't need any compiler in order to install it on any platform so you can distribute it with your own applications by just including a copy of its files (in this case just remember to AutoSplit the modules).
+This module and its extensions are written in pure perl. You don't need any compiler in order to install it on any platform so you can distribute it with your own applications by just including a copy of its files (in this case just remember to AutoSplit the modules or take off the '__END__').
 
 =back
 
@@ -1175,6 +1268,8 @@ The default C<zone_handler> is undefined, so you must add explicitly any standar
 
 B<Note>: If you write your own custom I<zone_handler>, remember that it must return a true value to end the C<zone_process>, or a false value to continue the C<zone_process>. In other words: if your I<zone_handler> has taken the control of the whole process it must return true, so the other processes (i.e. C<lookup_process> and C<value_process>) will be skipped, while if you want to continue the normal process your I<zone_handler> must return false.
 
+To simplify things you can import and use the constants C<NEXT_HANDLER> and C<LAST_HANDLER> that are more readable and simpler to remember (see L<"Constants">).
+
 (see also L<Text::MagicTemplate::Zone/"zone_process()">)
 
 =head4 standard zone handlers
@@ -1253,6 +1348,7 @@ You can add, omit or change the order of the element in the array, fine tuning t
 
 B<Note>: If you write your own custom I<value_handler>, remember that it must return a true value to end the C<value_process>, or a false value to continue the C<value_process>.
 
+To simplify things you can import and use the constants C<NEXT_HANDLER> and C<LAST_HANDLER> that are more readable and simpler to remember (see L<"Constants">).
 (see also L<Text::MagicTemplate::Zone/"value_process()">)
 
 =head4 standard value handlers
@@ -1321,6 +1417,8 @@ If you want to use the default I<output handler>, just call the new() method wit
 
 B<Note>: If you write your own custom I<output_handler>, remember that it must return a true value to end the C<output_process>, or a false value to continue the C<output_process>.
 
+To simplify things you can import and use the constants C<NEXT_HANDLER> and C<LAST_HANDLER> that are more readable and simpler to remember (see L<"Constants">).
+
 (see also L<Text::MagicTemplate::Zone/"output_process()">)
 
 =head4 standard output handlers
@@ -1355,6 +1453,8 @@ If you don't set any I<text handler>, the current I<output handlers> will be use
 
 B<Note>: If you write your own custom I<text_handler>, remember that it must return a true value to end the C<text_process>, or a false value to continue the C<text_process>.
 
+To simplify things you can import and use the constants C<NEXT_HANDLER> and C<LAST_HANDLER> that are more readable and simpler to remember (see L<"Constants">).
+
 (see also L<Text::MagicTemplate::Zone/"text_process()">)
 
 =head3 post_handlers
@@ -1364,6 +1464,8 @@ Use this constructor array only if you want to clean up or log processes just be
 B<Note>: This constructor array can contain B<code references>.
 
 B<Note>: If you write your own custom I<post_handler>, remember that it must return a true value to end the C<post_process>, or a false value to continue the C<post_process>.
+
+To simplify things you can import and use the constants C<NEXT_HANDLER> and C<LAST_HANDLER> that are more readable and simpler to remember (see L<"Constants">).
 
 (see also L<Text::MagicTemplate::Zone/"post_process()">)
 
@@ -1378,6 +1480,35 @@ Use this constructor array to pass some boolean value like 'cache' or 'no_cache'
 Control the caching of the templates structures. 'cache' is the default, so you don't need to explicitly use it in order to cache the template. Use 'no_cache' to avoid the caching.
 
 =back
+
+=head3 Constants
+
+If you write your own handler you can find useful a couple of constants that you can import:
+
+=over
+
+=item * NEXT_HANDLER (false)
+
+=item * LAST_HANDLER (true)
+
+=back
+
+    use Text::MagicTemplate qw(NEXT_HANDLER LAST_HANDLER);
+    
+    sub my_handler
+    {
+      my ($zone) = @_ ;
+      if (some_condition)
+      {
+        do_something ;
+        LAST_HANDLER ;
+      }
+      else
+      {
+        NEXT_HANDLER ;
+      }
+    }
+
 
 =head1 HOW TO...
 
@@ -1989,8 +2120,6 @@ Add the description of each label and block to the captured output and give it t
 =head2 Allow untrustworthy people to edit the template
 
 F<MagicTemplate.pm> does not use any eval() statement and the allowed characters for identifiers are only alphanumeric C<(\w+)>, so even dealing with tainted templates it should not raise any security problem that you wouldn't have in your program itself.
-
-However, since the module is just about 500 lines of code, you should consider to analyze it directly. If you do this, please send me some feedback.
 
 =head3 Avoid unwanted executions
 
