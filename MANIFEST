@@ -20,6 +20,7 @@ t/10_subs_execution_off.t
 t/11_HTML_syntax.t
 t/12_blocks_managements.t
 t/13_ID_output.t
+t/14_mixed_locations.t
 t/included_test_01
 t/included_test_02
 t/template_test_01

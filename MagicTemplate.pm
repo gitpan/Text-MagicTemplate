@@ -1,5 +1,5 @@
 package Text::MagicTemplate;
-$VERSION = '1.3';
+$VERSION = '1.31';
 use 5.005;
 use Carp qw ( croak );
 use strict; no strict "refs";
@@ -62,8 +62,10 @@ sub _lookup
     my ($s, $t, $v) = @_;
     for ($v || @{$s->{location}})
     {
-        if (!ref) { local *S = '*'.$_.'::'.$t->{id}; return $s->_value($t, ${*S}||*S{CODE}||*S{ARRAY}||*S{HASH}) }
-        elsif ( $_->{$t->{id}} )                   { return $s->_value($t, $_->{$t->{id}}) }
+    	my $res;
+        if (!ref) { local *S = '*'.$_.'::'.$t->{id}; $res = $s->_value($t, ${*S}||*S{CODE}||*S{ARRAY}||*S{HASH}) }
+        elsif ( $_->{$t->{id}} )                   { $res = $s->_value($t, $_->{$t->{id}}) }
+        return $res if $res;
     }
     $s->_lookup( $t ) if $v;
 }
