@@ -1,5 +1,8 @@
 Text::MagicTemplate Latest Versions Changes
 
+Version 3.14
+- Improved POD
+
 Version 3.13
 - Improved "HOW TO..." POD section
 - Added "EFFICIENCY" section

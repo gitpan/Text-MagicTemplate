@@ -1,5 +1,5 @@
 package Text::MagicTemplate::Zone ;
-$VERSION = 3.13                   ;
+$VERSION = 3.14                   ;
 use 5.005                         ;
 use strict                        ;
 our $AUTOLOAD                     ;
@@ -104,7 +104,7 @@ __END__
 
 Text::MagicTemplate::Zone - The Zone object
 
-=head1 VERSION 3.13
+=head1 VERSION 3.14
 
 =head1 DESCRIPTION
 
@@ -159,7 +159,7 @@ B<Note>: the C<lookup_process> and the C<content_process> are exceptions to this
 
 This method starts (and manage) the output generation for the zone: it process the I<zone content>, creates each new zone object and apply the appropriate process on the new zones.
 
-B<Note>: You can change the way of parsing by customizing the I<-marker> constructor array. You can change the resulting output by customizing the other constructor arrays.
+B<Note>: You can change the way of parsing by customizing the I<markers> constructor array. You can change the resulting output by customizing the other constructor arrays.
 
 =head2 merge()
 
@@ -169,9 +169,9 @@ Deprecated method. Use C<content_process()> instead.
 
 The scope of this method is organizing the Zone object.
 
-As other process methods, this process simply calls in turn all the handlers in the C<zone_handlers> constructor array (change that to change this process). This method is executed inside 2 nested loops: the outer ZONE labeled loop and the inner HANDLER labeled loop, so you can control the iteration by using statements as: C<'next ZONE'> to end the C<process()> method for the current zone, or C<'last HANDLER'> to end the C<zone_process()> itself and pass to the next processes.
+Since it is called first, and just after the creation of each new zone object, this is a very powerful method that allows you to manage the output generation before any other process. With this method you can even bypass or change the way of calling the other processes.
 
-B<Note>: Since it is called first, and just after the creation of each new zone object, this is a very powerful method that allows you to manage the output generation before any other process. With this method you can even bypass or change the way of calling the other processes.
+As other process methods, this process simply calls in turn all the handlers in the C<zone_handlers> constructor array (change that to change this process). This method is executed inside 2 nested loops: the outer ZONE labeled loop and the inner HANDLER labeled loop, so you can control the iteration by using statements as: C<'next ZONE'> to end the C<process()> method for the current zone, or C<'last HANDLER'> to end the C<zone_process()> itself and pass to the next processes.
 
 =head2 lookup([identifier])
 
@@ -197,7 +197,7 @@ B<Note>: it works only IF the zone value property is defined.
 
 =head2 text_process()
 
-The scope of this method is processing only the text that comes from the template and that goes into the output (in other words the template content between zones).
+The scope of this method is processing only the text that comes from the template and that goes into the output (in other words the template content between I<labels>).
 
 As other process methods, the C<text_process()> simply calls in turn all the handlers in the C<text_handlers> constructor array (change that to change this process). This method is executed inside 2 nested loops: the outer ZONE labeled loop and the inner HANDLER labeled loop, so you can control the iteration by using statements as: C<'next ZONE'> to end the C<process()> method for the current zone, or C<'last HANDLER'> to end the C<text_process()> itself and pass to the next processes.
 
@@ -205,7 +205,7 @@ B<Note>: If the C<text_handlers> constructor array is undefined (as it is by def
 
 =head2 output_process()
 
-The scope of this method is processing the text that comes from the code. It is usually used to process the text coming from the template as well (if the C<text_process()> is not used).
+The scope of this method is processing the text that comes from the code. It is usually used to process the text coming from the template as well if the C<text_process()> method is not used (i.e. no defined c<text_handlers>).
 
 As other process methods, the C<output_process()> simply calls in turn all the handlers in the C<output_handlers> constructor array (change that to change this process). This method is executed inside 2 nested loops: the outer ZONE labeled loop and the inner HANDLER labeled loop, so you can control the iteration by using statements as: C<'next ZONE'> to end the <process()> method for the current zone, or C<'last HANDLER'> to end the C<output_process()> itself and pass to the next processes.
 
@@ -219,12 +219,12 @@ As other process methods, the C<post_process()> simply calls in turn all the han
 
 The Zone package has a convenient C<AUTOLOAD> method that allows you to retrive or set a propery of the I<zone object>.
 
-All the properties are :lvalue methods, that means that you can use the property as a left value :
+All the properties are C<lvalue> methods, that means that you can use the property as a left value :
 
     # to set classical way (it works anyway)
     $z->value('whatever')   ;
     
-    # to set new way (lvalue stype)
+    # to set new way (lvalue type)
     $z->value  = 'whatever' ;
     
     $the_value = $z->value  ; # to retrive
@@ -281,7 +281,7 @@ B<Note>: this is a read only property.
 
 =head2 content
 
-The C<content> property allows you to access the B<zone content>.
+The C<content> property allows you to retrieve the B<zone content>. The I<zone content> is defined only for blocks (i.e. only with zones that have a start and an end label). If the zone is a single label zone, the content property will return the C<undef> value.
 
 B<Note>: this is a read only property.
 
@@ -364,9 +364,6 @@ More information at http://perl.4pro.net/?Text::MagicTemplate::Zone.
 =head1 AUTHOR
 
 Domizio Demichelis, <dd@4pro.net>.
-
-=for html
-<img src="http://perl.4pro.net/bug?Text::MagicTemplate::Zone" height="1" width="1" border="0"> 
 
 =head1 COPYRIGHT
 

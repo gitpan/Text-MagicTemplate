@@ -1,5 +1,5 @@
 package Text::MagicTemplate   ;
-$VERSION = 3.13               ;
+$VERSION = 3.14               ;
 use 5.005                     ;
 use Carp qw ( croak )         ;
 use strict                    ;
@@ -376,7 +376,7 @@ sub ID_list
 
 Text::MagicTemplate - magic merger of runtime values with templates
 
-=head1 VERSION 3.13
+=head1 VERSION 3.14
 
 =head1 WARNING!
 
@@ -423,15 +423,15 @@ On the other side, the programmer has just to define variables and subroutines a
 
 =item 1
 
-The object parse the template and search for any I<labeled zone>
+The object parses the template and searches for any I<labeled zone>
 
 =item 2
 
-When a I<zone> is found, the object looks into your code and search for any variable or sub with the same identifier (name)
+When a I<zone> is found, the object looks into your code and searches for any variable or sub with the same identifier (name)
 
 =item 3
 
-When a match is found the object replace the label or the block with the value returned by the variable or sub found into your code (dereferencing and/or executing code as needed). (see L<"Understand the output generation"> for details)
+When a match is found the object replaces the label or the block with the value returned by the variable or sub found into your code (dereferencing and/or executing code as needed). (see L<"Understand the output generation"> for details)
 
 =back
 
@@ -587,7 +587,7 @@ Placeholders and simulated areas can help in designing the template for a more c
 
 =item * Labels and block list
 
-When you have to deal with a webmaster, you can easily print a pretty formatted output of all the identifiers present in a template. Just add your description of each label and block and save hours of explanations ;-)  (see L<ID_list()|"ID_list ()"> static method)
+When you have to deal with a webmaster, you can easily print a pretty formatted output of all the identifiers present in a template. Just add your description of each label and block and save hours of explanations ;-)  (see L<ID_list()|"ID_list ( [identation_string [, end_marker]] )"> static method)
 
 =item * Simple to maintain
 
@@ -595,7 +595,11 @@ Change your code and Text::MagicTemplate will change its behaviour accordingly. 
 
 =item * Small footprint
 
-The MagicTemplate system doesn't use any other module and its code (including all the standard and autoloaded handlers) is just about 300 lines of pure perl I<(easier to write that this documentation :-) )>. You don't need any compiler in order to install it on any platform.
+The MagicTemplate system doesn't use any other module and its code (including all the standard and autoloaded handlers) is just about 300 lines of pure perl I<(easier to write that this documentation :-) )>.
+
+=item * Simply portable
+
+This module and its extensions are written in pure perl. You don't need any compiler in order to install it on any platform so you can distribute it with your own applications by just including a copy of its files (in this case just remember to AutoSplit the modules).
 
 =back
 
@@ -669,7 +673,7 @@ If you don't pass any parameter to the constructor method, the constructor defau
 
 =head2 output ( template [, identifier] )
 
-B<WARNING>: this method is here for historical reasons, but it is not the maximum of efficiency. Please consider to use the L<print()|"print ( template [, identifier] )"> method when possible I<(see L<"Use the system efficiently">)>. You can also consider to write an I<output handler> that fits your needs but process the output content on the fly and without the need to collect the whole output as this method does.
+B<WARNING>: this method is here for historical reasons, but it is not the maximum of efficiency. Please consider to use the L<print()|"print ( template [, identifier] )"> method when possible I<(see L<"EFFICIENCY">)>. You can also consider to write an I<output handler> that fits your needs but process the output content on the fly and without the need to collect the whole output as this method does.
 
 This method merges the runtime values with the template and returns a reference to the whole collected output. It accepts one I<template> parameter that can be a reference to a SCALAR content, a path to a template file or a filehandle. If any I<identifier> is passed, it returns a reference to the output of just that block.
 
@@ -717,7 +721,7 @@ You can use the print() method as a static method as well. The static method acc
     $mt = Text::MagicTemplate->new;
     $mt->print( 'template' );
 
-B<Note>: if I<template> is a path, the object will cache it automatically, so Text::MagicTemplate will open and parse the template file only the first time or if the file has been modified. If for any reason you don't want the template to be cached, pass it as a file handler. I<(see L<"Use the system efficiently">)>.
+B<Note>: if I<template> is a path, the object will cache it automatically, so Text::MagicTemplate will open and parse the template file only the first time or if the file has been modified. If for any reason you don't want the template to be cached, pass it as a file handler. I<(see L<"EFFICIENCY">)>.
 
 =head2 get_block ( template [, identifier] )
 
@@ -1367,7 +1371,7 @@ If you want to include in your template some area only for design purpose I<(for
 
 =head2 Setup labeled areas
 
-If you want to label some area in your template I<(for example to extract the area to mix with another template)>, just transform it into a block and give it an identifier that will always be defined in your code. A convenient way to do so is to define a reference to an empty hash. This will generate the output of the block and (since the array does not contain any keys) the lookup will fallback into the stored locations.
+If you want to label some area in your template I<(for example to extract the area to mix with another template)>, just transform it into a block and give it an identifier that will always be defined in your code. A convenient way to do so is to define a reference to an empty hash. This will generate the output of the block and (since the array does not contain any keys) the lookup will fallback to the I<containers> zones and the I<lookups> locations.
 
 =over
 
@@ -1503,9 +1507,9 @@ Note that the value of the keys I<'details'> are a reference to an array of hash
 
 =back
 
-=head2 Process a (huge) loop iteration by iteration
+=head2 Process (huge) loops iteration by iteration
 
-Usually a loop is build just by an array of hashes value (see L<"Build a loop">). this means that you have to fill an array with all the hashes BEFORE the process starts. In normal situation (i.e. the array contains just a few hashes) this is not a problem, but if the array is supposed to contain a lot of hashes, it could be more efficient create each hash just DURING the process and not BEFORE (i.e. without storing it in any array).
+Usually a loop is built just by an array of hashes value (see L<"Build a loop">). this means that you have to fill an array with all the hashes BEFORE the process starts. In normal situations (i.e. the array contains just a few hashes) this is not a problem, but if the array is supposed to contain a lot of hashes, it could be more efficient by creating each hash just DURING the process and not BEFORE it (i.e. without storing it in any array).
 
 For example imagine that in the L<"Build a loop"> example, the array comes from a huge file like this:
 
@@ -1529,7 +1533,7 @@ You could generate the output line by line with a simple sub like this:
       }
     }
 
-This way you completely avoid the array overload.
+This way you don't waste memory to store the data for all the iteration into the array: you just use the memory needed for one iteration at a time.
 
 =head2 Setup an if-else condition
 
@@ -1776,7 +1780,7 @@ Add the description of each label and block to the captured output and give it t
 
 =head2 Allow untrustworthy people to edit the template
 
-F<MagicTemplate.pm> does not use any eval() statement, it just do a recursive search and replace with the content of the template. Besides, the allowed characters for identifiers are only alphanumeric C<(\w+)>, so even dealing with tainted templates should not raise any security problem that you wouldn't have in your program itself.
+F<MagicTemplate.pm> does not use any eval() statement and the allowed characters for identifiers are only alphanumeric C<(\w+)>, so even dealing with tainted templates it should not raise any security problem that you wouldn't have in your program itself.
 
 However, since the module is just about 300 lines of code, you should consider to analyze it directly. If you do this, please send me some feedback.
 
@@ -1897,7 +1901,7 @@ L<"Include (huge) text files without memory charges">
 
 =item *
 
-L<"Process a (huge) loop iteration by iteration">
+L<"Process (huge) loops iteration by iteration">
 
 =back
 
@@ -1951,9 +1955,9 @@ If the template contains any illegal block, unpredictable behaviours may occur.
 
 =item include label
 
-An I<include label> is a I<label> used to include a I<template> file. The I<identifier> must be surrounded by single or double quotes and should be a valid path.
+An I<include label> is a I<label> used to include a I<template> file. The I<identifier> must be 'INCLUDE_TEMPLATE' and the attributes string should be a valid path.
 
-Example: B<{'/templates/temp_file.html'}>
+Example: B<{INCLUDE_TEMPLATE /templates/temp_file.html}>
 
 =item label
 
