@@ -1,5 +1,5 @@
 package Text::MagicTemplate;
-$VERSION = 2.2;
+$VERSION = 2.21;
 use 5.005;
 use Carp qw ( croak );
 use strict;
@@ -427,6 +427,8 @@ See the C<-behaviours> constructor array, and L<Text::MagicTemplateX::Core> for 
 
 This document plus:
 
+=over
+
 =item * L<Text::MagicTemplate::Tutorial>
 
 =item * L<Text::MagicTemplate::Zone>
@@ -434,6 +436,8 @@ This document plus:
 =item * L<Text::MagicTemplateX::Core>
 
 =item * L<Text::MagicTemplateX>.
+
+=back
 
 =head1 INSTALLATION
 
@@ -878,6 +882,8 @@ A I<zone object> is an internal object representing a zone.
 
 =head1 SEE ALSO
 
+=over
+
 =item * L<Text::MagicTemplate::Zone|Text::MagicTemplate::Zone>
 
 =item * L<Text::MagicTemplate::Tutorial|Text::MagicTemplate::Tutorial>
@@ -887,6 +893,8 @@ A I<zone object> is an internal object representing a zone.
 =item * L<Text::MagicTemplateX::Core|Text::MagicTemplateX::Core>
 
 =item * L<Text::MagicTemplateX::HTML|Text::MagicTemplateX::HTML>
+
+=back
 
 =head1 SUPPORT and FEEDBACK
 
@@ -911,6 +919,7 @@ The copyright notice must remain fully intact at all times. Use of this software
 =head1 CREDITS
 
 Thanks to I<Mark Overmeer> http://search.cpan.org/author/MARKOV/ that has submitted a variety of code cleanups/speedups and other useful suggesitions.
+
 
 
 

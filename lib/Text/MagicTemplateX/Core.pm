@@ -1,5 +1,5 @@
 package Text::MagicTemplateX::Core;
-$VERSION = 2.2;
+$VERSION = 2.21;
 __END__
 
 =head1 NAME
@@ -279,6 +279,8 @@ B<WARNING>: Since the result of the eval() will be passed to the C<apply_behavio
 
 =head1 SEE ALSO
 
+=over
+
 =item * L<Text::MagicTemplate|Text::MagicTemplate>
 
 =item * L<Text::MagicTemplate::Zone|Text::MagicTemplate::Zone>
@@ -288,6 +290,8 @@ B<WARNING>: Since the result of the eval() will be passed to the C<apply_behavio
 =item * L<Text::MagicTemplateX|Text::MagicTemplateX>
 
 =item * L<Text::MagicTemplateX::HTML|Text::MagicTemplateX::HTML>
+
+=back
 
 =head1 SUPPORT and FEEDBACK
 
@@ -308,5 +312,6 @@ This software may not be modified without first notifying the author (this is to
 This code is provided on an "As Is'' basis, without warranty, expressed or implied. The author disclaims all warranties with regard to this software, including all implied warranties of merchantability and fitness, in no event shall the author, be liable for any special, indirect or consequential damages or any damages whatsoever including but not limited to loss of use, data or profits. By using this software you agree to indemnify the author from any liability that might arise from it is use. Should this code prove defective, you assume the cost of any and all necessary repairs, servicing, correction and any other costs arising directly or indrectly from it is use.
 
 The copyright notice must remain fully intact at all times. Use of this software or its output, constitutes acceptance of these terms.
+
 
 

@@ -1,5 +1,8 @@
 Text::MagicTemplate Latest Versions Changes
 
+Version 2.21
+- Fixed POD errors.
+
 Version 2.2
 - Fixed silly '0' bug.
 - Fixed in place sarch and substitution when a template is passed as a reference
@@ -37,6 +40,7 @@ Version > 2.0
 - Introduction of new HTML extension
 - Complete POD review
 - Other fixes
+
 
 
 
