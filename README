@@ -48,7 +48,9 @@ Installation
 Uninstallation of obsolete modules
 ----------------------------------
 
-If you have installed some 2.xx version you could want to uninstall the obsolete files from that installation. You should manually unlink (delete) the following files and directories (sorry, no automatic uninstallation yet):
+If you have installed some 2.xx version you could want to uninstall the
+obsolete files from that installation. You should manually unlink (delete)
+the following files and directories (sorry, no automatic uninstallation yet):
 
     Text/MagicTemplate/Tutorial.pm
     Text/MagicTemplate/Utilities.pm

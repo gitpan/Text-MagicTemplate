@@ -1,7 +1,7 @@
 package Text::MagicTemplate::Zone ;
-$VERSION = 3.43                   ;
+$VERSION = 3.44                   ;
 
-; use 5.005
+; use 5.006
 ; use strict
 ; our $AUTOLOAD
 ; use constant OK => 1
@@ -63,9 +63,9 @@ $VERSION = 3.43                   ;
    { (my $n = $AUTOLOAD) =~ s/.*://
    ; no strict 'refs'
    ; *$AUTOLOAD = sub :lvalue
-                   { $_[0]->{$n} = $_[1]
-                                   if defined $_[1]
-                   ; $_[0]->{$n}
+                   { $_[0]->{__CUSTOM}{$n} = $_[1]
+                                             if defined $_[1]
+                   ; $_[0]->{__CUSTOM}{$n}
                    }
    ; goto &$AUTOLOAD
    ; my $dummy  # to make :lvalue work in AUTOLOAD
@@ -180,7 +180,7 @@ __END__
 
 Text::MagicTemplate::Zone - The Zone object
 
-=head1 VERSION 3.43
+=head1 VERSION 3.44
 
 =head1 DESCRIPTION
 

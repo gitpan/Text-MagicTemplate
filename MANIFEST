@@ -33,6 +33,7 @@ t/23_loop_no_array.t
 t/24_TableTiler.t
 t/25_double_init.t
 t/25_tmpl
+t/26_export.t
 t/included_test_01
 t/included_test_02
 t/template_test_01

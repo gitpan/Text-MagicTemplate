@@ -1,20 +1,18 @@
 package HTML::MagicTemplate ;
-$VERSION = 3.43             ;
+$VERSION = 3.44             ;
 
-; use 5.005
+; use 5.006
 ; use strict
-; use base qw| Text::MagicTemplate |
+; use base 'Text::MagicTemplate'
 
-
-# defaults overriding (method redefinition)
-; sub DEFAULT_VALUE_HANDLERS
-   { $_[0]->HTML_VALUE_HANDLERS
+; BEGIN
+   { *NEXT_HANDLER           = *Text::MagicTemplate::NEXT_HANDLER
+   ; *LAST_HANDLER           = *Text::MagicTemplate::LAST_HANDLER
+   ; *EXPORT_OK              = *Text::MagicTemplate::EXPORT_OK
+   ; *DEFAULT_VALUE_HANDLERS = *Text::MagicTemplate::HTML_VALUE_HANDLERS
+   ; *DEFAULT_MARKERS        = *Text::MagicTemplate::HTML_MARKERS
    }
-
-; sub DEFAULT_MARKERS
-   { $_[0]->HTML_MARKERS
-   }
-
+   
 ; 1
 
 __END__
@@ -23,11 +21,11 @@ __END__
 
 HTML::MagicTemplate - HTML handlers for Text::MagicTemplate used in a HTML environment.
 
-=head1 VERSION 3.43
+=head1 VERSION 3.44
 
 =head1 SYNOPSIS
 
-    $mt = new HTML::MagicTemplate;
+    $mt = new HTML::MagicTemplate ;
     
     # that means
     $mt = new Text::MagicTemplate

@@ -1,22 +1,22 @@
 package Text::MagicTemplate ;
-$VERSION = 3.43             ;
+$VERSION = 3.44             ;
 use AutoLoader 'AUTOLOAD'   ;
 
 ; use strict
-; use 5.005
+; use 5.006
 ; use Carp
-  qw| croak
-    |
+    qw| carp
+        croak
+      |
 ; use Text::MagicTemplate::Zone
 ; use File::Spec
-; require Exporter
+; use base 'Exporter'
 ; use constant NEXT_HANDLER => 0
 ; use constant LAST_HANDLER => 1
-; our @ISA = 'Exporter'
+
 ; our @EXPORT_OK   = qw| NEXT_HANDLER
                          LAST_HANDLER
                        |
-; our %CACHE
 ; our @autoloaded = qw | _EVAL_
                          _EVAL_ATTRIBUTES_
                          TRACE_DELETIONS
@@ -27,6 +27,7 @@ use AutoLoader 'AUTOLOAD'   ;
                        
 # predeclaration of autoloaded methods
 ; use subs @autoloaded
+; our %CACHE
 
 ; sub import
    { my ($pkg, $directive, @subs) = @_
@@ -109,7 +110,7 @@ use AutoLoader 'AUTOLOAD'   ;
                }
             }
          ; if ( $@ )
-            { croak "Unknown handler $_"
+            { croak "Unknown handler '$_'"
             }
          ; if ( ref $ref eq 'ARRAY' )
             { $s->_Hload( $ref, $n )
@@ -262,7 +263,7 @@ use AutoLoader 'AUTOLOAD'   ;
         && $s->{-options}{cache}
         )
       { my $path = File::Spec->rel2abs($t)
-      ; -e $path or croak $^E
+      ; -e $path or croak "Template file '$path' not found!"
       ; my $mtime = ( stat($path) )[9]
       ;  exists $CACHE{$path}             # if it is cached
       && $mtime > $CACHE{$path}->{mtime}  # and old
@@ -401,7 +402,6 @@ use AutoLoader 'AUTOLOAD'   ;
 ; sub SCALAR # value handler
    { sub
       { my ($z) = @_
-      ; my $v = $z->{value}
       ; if ( not ref $z->{value} )           # if it's a plain string
          { $z->{output} = $z->{value}        # set output
          ; $z->output_process( $z->{value} ) # process output (requires string)
@@ -509,10 +509,10 @@ sub _EVAL_ # zone handler
       { my ($z) = @_;
       ; if ( $z->{id} eq '_EVAL_' )
          { $z->{value} = eval $z->content
-         ; NEXT_HANDLER
-         # lookup is skipped by the defined $z->value
-         # value_process is entered by default
          }
+      ; NEXT_HANDLER
+      # lookup is skipped by the defined $z->value
+      # value_process is entered by default
       }
    }
 
@@ -521,9 +521,9 @@ sub _EVAL_ATTRIBUTES_ # zone handler
       { my ($z) = @_
       ; if ( $z->{attributes} )
          { $z->{param} = eval $z->{attributes}
-         ; NEXT_HANDLER
-         # $z->attributes should be a ref to a structure
          }
+      ; NEXT_HANDLER
+      # $z->attributes should be a ref to a structure
       }
    }
 
@@ -567,7 +567,7 @@ sub TableTiler # value handler
       ; import  HTML::TableTiler
       }
    ; if ( $@ )
-      { warn "\"HTML::TableTiler\" is not installed on this system\n"
+      { carp "\"HTML::TableTiler\" is not installed on this system\n"
       ; return sub {}  # no action
       }
      else
@@ -595,7 +595,7 @@ sub FillInForm # value handler
       ; import  HTML::FillInForm
       }
    ; if ( $@ )
-      { warn "\"HTML::FillInForm\" is not installed on this system\n"
+      { carp "\"HTML::FillInForm\" is not installed on this system\n"
       ; sub {}
       }
      else
@@ -623,7 +623,7 @@ sub FillInForm # value handler
 
 Text::MagicTemplate - magic merger of runtime values with templates
 
-=head1 VERSION 3.43
+=head1 VERSION 3.44
 
 =head1 WARNING!
 
@@ -909,6 +909,8 @@ If you don't pass any parameter to the constructor method, the constructor defau
 =head2 output ( template [, temporary lookups ] )
 
 B<WARNING>: this method is here for historical reasons, but it is not the maximum of efficiency. Please consider to use the L<print()|"print ( template [, temporary lookups ] )"> method when possible I<(see L<"EFFICIENCY">)>. You can also consider to write an I<output handler> that fits your needs but process the output content on the fly and without the need to collect the whole output as this method does.
+
+If you need to use Text::MagicTemplate with C<CGI::Application> (that requires the run modes method to collect the wole output) you may use L<CGI::Application::CodeRM|CGI::Application::CodeRM> that allows you to use C<print()> or C<nprint()> method instead of C<output()> method.
 
 This method merges the runtime values with the template and returns a reference to the whole collected output. It accepts one I<template> parameter that can be a reference to a SCALAR content, a path to a template file or a filehandle.
 
@@ -1591,17 +1593,19 @@ Different combinations of I<values> and I<zones> can easily produce complex oupu
 
 =head2 Include and process a template file
 
-To include a file in a template use the I<INCLUDE_TEMPLATE> label passing the file path as the attribute:
+To include a file in a template use the I<INCLUDE_TEMPLATE> label passing the file path as the label attribute:
 
     {INCLUDE_TEMPLATE /temp/footer.html}
 
 The  F<'/temp/footer.html'> file will be included in place of the label and it will be processed (and automatically cached) as usual.
 
+B<WARNING>: An icluded template is processed as it were a complete template, this means that a I<block> should be always ended with an I<end label> in the same template. In other words I<blocks> cannot cross the phisical boundary of the file they belong to, or unpredictable behaviours could occur.
+
 A deprecated (but still supported) way to include a template file is using a label with the pathname of the file as identifier, surrounded by single or double quotes:
 
     {'/temp/footer.html'}
 
-This is less memory efficient: please use the 'INCLUDE_TEMPLATE' label instead.
+Even if this way does not present the above cross boundary problem, it is far less memory efficient, so please use the 'INCLUDE_TEMPLATE' label instead.
 
 =head2 Include (huge) text files without memory charges
 
@@ -2220,6 +2224,8 @@ You can save a lot of typing and a lot of memory if you do this instead:
 
     $mt->print('/path/to/big_template') ;
 
+If you need to use Text::MagicTemplate with C<CGI::Application> (that requires the run modes method to collect the wole output) you may use L<CGI::Application::CodeRM|CGI::Application::CodeRM> that allows you to use C<print()> or C<nprint()> method instead of C<output()> method.
+
 For memory optimization see also:
 
 =over
@@ -2271,12 +2277,16 @@ There are some handlers that are AUTOLOADed (i.e. compiled just at run time). Th
 If you want to compile some or all the AUTOLOADed handlers at import time you can use this directive:
 
     # compiles all the AUTOLOADed handlers, without importing
-    use Text::MagicTemplate qw ( -compile );
+    use Text::MagicTemplate qw( -compile ) ;
    
-    # compiles just '_EVAL_' AUTOLOADed handlers at import, without importing
-    use Text::MagicTemplate qw ( -compile _EVAL_ );
-
+    # or compiles just '_EVAL_' AUTOLOADed handlers at import, without importing
+    use Text::MagicTemplate qw( -compile _EVAL_ ) ;
+    
 e.g. this could be useful if you plan to load the module in F<setup.pl> when using C<mod_perl>.
+
+    # normal import can follow the -compile
+    use Text::MagicTemplate qw( -compile ) ;
+    use Text::MagicTemplate qw( LAST_HANDLER ) ;
 
 =head1 SYNTAX GLOSSARY
 
@@ -2417,6 +2427,8 @@ A I<zone object> is an internal object representing a zone.
 =item * L<Text::MagicTemplate::Zone|Text::MagicTemplate::Zone>
 
 =item * L<HTML::MagicTemplate|HTML::MagicTemplate>
+
+=item * L<CGI::Application::CodeRM|CGI::Application::CodeRM>
 
 =back
 

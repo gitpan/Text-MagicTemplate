@@ -1,5 +1,9 @@
 Text::MagicTemplate Latest Versions Changes
 
+Version 3.44
+- Improved POD
+- Fixed exporting for HTML::MagicTemplate
+
 Version 3.43
 - Added exporting of constants NEXT_HANDLER and LAST_HANDLER
 
