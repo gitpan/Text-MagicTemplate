@@ -1,5 +1,5 @@
 package Text::MagicTemplate::Zone ;
-our $VERSION = 3.03               ;
+our $VERSION = 3.04               ;
 use 5.005                         ;
 use strict                        ;
 our $AUTOLOAD                     ;
@@ -70,15 +70,15 @@ sub AUTOLOAD :lvalue
   (my $n = $AUTOLOAD) =~ s/.*://;
   no strict 'refs';
   if (my ($w) = $n=~/^(\w+)_process$/) # process
-  { *$n = sub { my $ch = $_[0]->mt->{"-${w}_handlers"} or return;
-                HANDLER: for (@$ch) {$_->(@_)} } }
+  { *$AUTOLOAD = sub { my $ch = $_[0]->mt->{"-${w}_handlers"} or return;
+                       HANDLER: for (@$ch) {$_->(@_)} } }
   else # property
-  { *$n = sub :lvalue { $_[0]->{$n} = $_[1] if defined $_[1]; $_[0]->{$n} } }
-  goto &$n ;
+  { *$AUTOLOAD = sub:lvalue{ $_[0]->{$n}=$_[1] if defined $_[1];$_[0]->{$n} } }
+  goto &$AUTOLOAD ;
   my $dummy ; # to make :lvalue work in AUTOLOAD
 }
 
-sub DESTROY { goto &post_process }
+sub DESTROY { $_[0]->post_process }
 
 1;
 
@@ -88,7 +88,7 @@ __END__
 
 Text::MagicTemplate::Zone - The Zone object
 
-=head1 VERSION 3.03
+=head1 VERSION 3.04
 
 =head1 DESCRIPTION
 

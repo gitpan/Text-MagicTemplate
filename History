@@ -1,5 +1,8 @@
 Text::MagicTemplate Latest Versions Changes
 
+Version 3.04
+- Pure OO code rewriting
+
 Version 3.03
 - A rare handler inheritance bug fixed
 

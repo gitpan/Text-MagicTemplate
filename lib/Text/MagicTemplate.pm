@@ -1,5 +1,5 @@
 package Text::MagicTemplate   ;
-our $VERSION = 3.03           ;
+our $VERSION = 3.04           ;
 use 5.005                     ;
 use Carp qw ( croak )         ;
 use strict                    ;
@@ -8,17 +8,18 @@ use AutoLoader 'AUTOLOAD'     ;
      
 sub new
 {
-  my ($c, $s) = @_;
-  ref $s eq 'HASH' or $s = {splice @_, 1};
+  my ($c) = shift;
+  my ($s) = @_ ;
+  ref $s eq 'HASH' or $s = {@_};
+  bless $s, $c ;
   for (keys %$s){$s->{"-$_"} = delete $s->{$_} unless /^-/}
   for (values %$s){ $_ = [$_] unless ref eq 'ARRAY' }
-  $s->{-markers}       ||= DEFAULT_MARKERS()        ;
-  $s->{-text_handlers} ||= DEFAULT_TEXT_HANDLERS()  ;
-  $s->{-zone_handlers} ||= DEFAULT_ZONE_HANDLERS()  ;
-  $s->{-value_handlers}||= DEFAULT_VALUE_HANDLERS() ;
-  $s->{-post_handlers} ||= DEFAULT_POST_HANDLERS()  ;
-  $s->{-lookups}       ||= [ (caller)[0] ]          ;
-  bless $s, $c ;
+  $s->{-markers}       ||= $s->DEFAULT_MARKERS        ;
+  $s->{-text_handlers} ||= $s->DEFAULT_TEXT_HANDLERS  ;
+  $s->{-zone_handlers} ||= $s->DEFAULT_ZONE_HANDLERS  ;
+  $s->{-value_handlers}||= $s->DEFAULT_VALUE_HANDLERS ;
+  $s->{-post_handlers} ||= $s->DEFAULT_POST_HANDLERS  ;
+  $s->{-lookups}       ||= [ (caller)[0] ]            ;
   $s->_init    ;
   $s           ;
 }
@@ -28,38 +29,40 @@ sub _init
   my ($s) = @_ ;
   unless (@{$s->{-markers}}==3)
   {
-    no strict 'refs'                                   ;
-    my $m = $s->{-markers}[0]                          ;
-    eval { $s->{-markers} = &{$m} }                    ;
-      eval { $s->{-markers} = &{$m.'_MARKERS'} } if $@ ;
-        croak "Unknown markers \"$m\"" if $@           ;
+    no strict 'refs' ;
+    my $m = $s->{-markers}[0] ;
+    eval { $s->{-markers} = $s->$m } ;
+    if ($@) { $m .='_MARKERS'; eval { $s->{-markers} = $s->$m } }
+    if ($@) { croak "Unknown markers \"$m\""}
   }
   $s->{-markers} = [ map {qr/$_/s} @{$s->{-markers}},
                                     '(?:(?!'.$s->{-markers}[2].').)*', '\w+' ] ;
   for (qw(zone value post))
-  { $s->{"-$_".'_handlers'} &&= [ _Hload($s->{"-$_".'_handlers'}, $_) ] }
+  { $s->{"-${_}_handlers"} &&= [ $s->_Hload($s->{"-${_}_handlers"}, $_) ] }
 }
   
 sub _Hload
 {
-  map { if    (ref eq 'CODE') { $_ }
-        elsif (!ref)
-        {
-          no strict 'refs'                                              ;
-          my $ref                                                       ;
-          eval { $ref = &$_}                                            ;
-            eval { $ref = &{join '_', $_, uc $_[1], 'HANDLERS'} } if $@ ;
-              croak "Unknown handler \"$_\"" if $@                      ;
-          if    (ref $ref eq 'ARRAY') { _Hload($ref, $_[1]) }
-          elsif (ref $ref eq 'CODE' ) { $ref                }
-        }
-      } @{$_[0]}
+  my ($s, $arr, $w) = @_ ;
+  map
+  { if    (ref eq 'CODE') { $_ }
+    elsif (!ref)
+    {
+      no strict 'refs' ;
+      my $ref ;
+      eval { $ref = $s->$_ } ;
+      if ($@) { my $h = join '_', $_, uc $w,'HANDLERS'; eval{$ref = $s->$h} }
+      if ($@) { croak "Unknown handler \"$_\"" }
+      if    (ref $ref eq 'ARRAY') { $s->_Hload($ref, $w) }
+      elsif (ref $ref eq 'CODE' ) { $ref                 }
+    }
+  } @$arr
 }
 
 sub get_block
 {
-  my ($s, $t, $id) = @_;
-  $t = &read_temp unless ref $t eq 'SCALAR' ;
+  my ($s, $t, $id) = @_ ;
+  $t = $s->read_temp($t) unless ref $t eq 'SCALAR' ;
   $$t or croak 'The template content is empty' ;
   my ($S, $I, $E, $A) = @{$s->{-markers}} ;
   $$t =~ s/ $S ('|") (.*?) \1 $E /${$s->get_block($2)}/xgse; #include
@@ -71,7 +74,8 @@ sub get_block
 
 sub read_temp
 {
-  local $_ = $_[1] || croak 'No template parameter passed';
+  my ($s, $t) = @_ ;
+  local $_ = $t || croak 'No template parameter passed';
   if (ref eq 'GLOB' || ref \$_ eq 'GLOB'){ $_ = do{local $/; <$_>} }
   elsif ($_ && !ref) { open _ or croak "Error opening template \"$_\": $^E" ;
                        $_ = do{local $/; <_>}; close _ }
@@ -91,18 +95,28 @@ sub set_block
   $t;
 }
 
-sub output { &_start_process( @_, DEFAULT_OUTPUT_HANDLERS() ) }
-sub print  { &_start_process( @_, DEFAULT_PRINT_HANDLERS()  ) }
+sub output
+{
+  my ($s) = shift ;
+  $s->_start_process( @_, $s->DEFAULT_OUTPUT_HANDLERS )
+}
+
+sub print
+{
+  my ($s) = shift ;
+  $s->_start_process( @_, $s->DEFAULT_PRINT_HANDLERS )
+}
 
 sub _start_process
 {
-  my ($s) = @_ ; my ($h) = pop ;
+  my ($s) = shift ;
+  my ($h) = pop ;
   $s = $s->new( { -lookups => [ (caller)[0] ] } ) unless ref $s ;
   $s->{-output_handlers} ||= [ $h ] ;
   $s->{-text_handlers}   ||= $s->{-output_handlers} ;
-  my $z = new Text::MagicTemplate::Zone { content  => ${&get_block}  ,
-                                          mt       => $s             ,
-                                          level    => -1             } ;
+  my $z = new Text::MagicTemplate::Zone { content  => ${$s->get_block(@_)} ,
+                                          mt       => $s                   ,
+                                          level    => -1                   } ;
   $z->merge ;
   \$s->{output} if defined $s->{output}
 }
@@ -283,7 +297,7 @@ sub ID_list
 
 Text::MagicTemplate - magic merger of runtime values with templates
 
-=head1 VERSION 3.03
+=head1 VERSION 3.04
 
 =head1 WARNING!
 
