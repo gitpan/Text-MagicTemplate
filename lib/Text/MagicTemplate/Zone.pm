@@ -1,44 +1,38 @@
 package Text::MagicTemplate::Zone ;
-our $VERSION = 3.04               ;
+our $VERSION = 3.05               ;
 use 5.005                         ;
 use strict                        ;
 our $AUTOLOAD                     ;
 
 sub new { bless $_[1], $_[0] }
 
-sub mt
-{
-  my ($az) = my ($z) = @_ ;
-  until ( $az->level == -1 ){ $az = $az->container }
-  $az->{mt}
-}
-
 sub merge
 {
   my ($z) = @_ ;
-  my ($S, $I, $E, $A, $ID) = @{$z->mt->{-markers}};
-  my ($nz, $pos);
-  ZONE: while ( $z->{content} =~ / ( (?: (?! $S$ID$A$E) . )* )
-                                   $S($ID)($A)$E
-                                   (?:
-                                     ( (?: (?! $S\2$A$E) (?! $S$I\2$E) . )* )
-                                     $S$I\2$E
-                                   )? /xgs )
-        {
-          $pos = pos $z->{content} ;
-          $z->text_process($1)     ;
-          $nz = ref($z)->new ( { id         => $2            ,
-                                 attributes => $3            ,
-                                 content    => $4            ,
-                                 container  => $z            ,
-                                 level      => $z->level + 1 } ) ;
-          $nz->zone_process                               ;
-          $nz->lookup         if (not defined $nz->value) ;
-          $nz->value_process  if     (defined $nz->value) ;
-        }
-  $z->text_process(substr $z->{content}, $pos) ;
+  ZONE: for ( my $i=$z->_s ; $i<=$z->_e ; $i++ )
+  {
+    if ( not $z->mt->{zones}[$i] ) { $z->text_process($z->mt->{chunks}[$i]) }
+    else
+    {
+      my $nz = ref($z)->new( { %{$z->mt->{zones}[$i]}     ,
+                               level     => $z->level + 1 ,
+                               container => $z            ,
+                               mt        => $z->mt        } ) ;
+      $i = $nz->_e + 1 if $nz->_e ;
+      $nz->zone_process                               ;
+      $nz->lookup         if (not defined $nz->value) ;
+      $nz->value_process  if     (defined $nz->value) ;
+    }
+  }
 }
-                                        
+
+sub content
+{
+  my ($z) = @_ ;
+  return unless $z->_s;
+  join '', @{$z->mt->{chunks}}[$z->_s..$z->_e]
+}
+                   
 sub lookup
 {
   my ($z) = @_ ;
@@ -88,7 +82,7 @@ __END__
 
 Text::MagicTemplate::Zone - The Zone object
 
-=head1 VERSION 3.04
+=head1 VERSION 3.05
 
 =head1 DESCRIPTION
 
@@ -202,7 +196,7 @@ All the properties are :lvalue methods, that means that you can use the property
 
 If you plan to customize the behaviours of Text::MagicTemplate, you will find useful the C<AUTOLOAD> method. You can automatically set and retrieve your own properties by just using them. The following example shows how you can add a custom 'my_attributes' property to the I<zone object>
 
-B<Note>: Since the AUTOLOAD method is used to address all the C<*_process> methods as well, you should avoid property names that ends with '_process'.
+B<Note>: Since the AUTOLOAD method is used to address all the C<*_process> methods as well, you should avoid property names that ends with '_process', besides avoid '_s' and '_e' names, that are internal properties.
 
 In the template zone 'my_zone':
 

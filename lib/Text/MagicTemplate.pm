@@ -1,5 +1,5 @@
 package Text::MagicTemplate   ;
-our $VERSION = 3.04           ;
+our $VERSION = 3.05           ;
 use 5.005                     ;
 use Carp qw ( croak )         ;
 use strict                    ;
@@ -8,20 +8,20 @@ use AutoLoader 'AUTOLOAD'     ;
      
 sub new
 {
-  my ($c) = shift;
+  my ($c) = shift ;
   my ($s) = @_ ;
-  ref $s eq 'HASH' or $s = {@_};
+  ref $s eq 'HASH' or $s = {@_} ;
   bless $s, $c ;
   for (keys %$s){$s->{"-$_"} = delete $s->{$_} unless /^-/}
-  for (values %$s){ $_ = [$_] unless ref eq 'ARRAY' }
+  for (values %$s) { $_ = [$_] unless ref eq 'ARRAY' }
   $s->{-markers}       ||= $s->DEFAULT_MARKERS        ;
   $s->{-text_handlers} ||= $s->DEFAULT_TEXT_HANDLERS  ;
   $s->{-zone_handlers} ||= $s->DEFAULT_ZONE_HANDLERS  ;
   $s->{-value_handlers}||= $s->DEFAULT_VALUE_HANDLERS ;
   $s->{-post_handlers} ||= $s->DEFAULT_POST_HANDLERS  ;
   $s->{-lookups}       ||= [ (caller)[0] ]            ;
-  $s->_init    ;
-  $s           ;
+  $s->_init ;
+  $s ;
 }
 
 sub _init
@@ -37,7 +37,7 @@ sub _init
   }
   $s->{-markers} = [ map {qr/$_/s} @{$s->{-markers}},
                                     '(?:(?!'.$s->{-markers}[2].').)*', '\w+' ] ;
-  for (qw(zone value post))
+  for ( qw(zone value post) )
   { $s->{"-${_}_handlers"} &&= [ $s->_Hload($s->{"-${_}_handlers"}, $_) ] }
 }
   
@@ -66,6 +66,7 @@ sub get_block
   $$t or croak 'The template content is empty' ;
   my ($S, $I, $E, $A) = @{$s->{-markers}} ;
   $$t =~ s/ $S ('|") (.*?) \1 $E /${$s->get_block($2)}/xgse; #include
+  $$t =~ s/(?:$S)INCLUDE_TEMPLATE($A)$E/${$s->get_block($1)}/gse; #include
   if ($id) { ($$t) = $$t =~ /( $S$id$A$E
                              (?: (?! $S$id$A$E) (?! $S$I$id$E) . )*
                              $S$I$id$E )/xs }
@@ -114,13 +115,44 @@ sub _start_process
   $s = $s->new( { -lookups => [ (caller)[0] ] } ) unless ref $s ;
   $s->{-output_handlers} ||= [ $h ] ;
   $s->{-text_handlers}   ||= $s->{-output_handlers} ;
-  my $z = new Text::MagicTemplate::Zone { content  => ${$s->get_block(@_)} ,
-                                          mt       => $s                   ,
-                                          level    => -1                   } ;
+  $s->_store_template(@_) ;
+  my $z = new Text::MagicTemplate::Zone { _s    => 0               ,
+                                          _e    => $#{$s->{zones}} ,
+                                          mt    => $s              ,
+                                          level => -1              } ;
   $z->merge ;
   \$s->{output} if defined $s->{output}
 }
 
+sub _store_template
+{
+  my ($s) = shift ;
+  my ($S, $I, $E, $A, $ID) = @{$s->{-markers}} ;
+  $s->{chunks} = [ split /($S$I*$ID$A$E)/, ${$s->get_block(@_)} ] ;
+  $s->{zones}  =
+  [ map
+    {
+      if    ( !/^$S/ )            { undef                } # text
+      elsif ( /^$S$I($ID)$E$/ )   { $1                   } # end label
+      elsif ( /^$S($ID)($A)$E$/ ) { my $z = {id => $1};
+                                    $z->{attributes} = $2 if $2;
+                                    $z                   } # start label
+    } @{$s->{chunks}} ] ;
+  for ( my $i = $#{$s->{zones}}; $i >= 0; $i-- )  # find end
+  {
+    my $id = $s->{zones}[$i] ;
+    next if not defined $id or ref $id ; # next if not end
+    for( my ($ii,$l)=($i-1,0) ; $ii>=0 ; $ii--,$l++ ) # find THE start
+    {
+      my $the_start = $s->{zones}[$ii] ;
+      next unless ref $the_start eq 'HASH';
+      next unless $the_start->{id} eq $id ; # next if not THE start
+      $the_start->{_s} = $ii + 1 ;
+      $the_start->{_e} = $ii + $l;
+      last ;
+    }
+  }
+}
 ############################## STANDARD HANDLERS ##############################
 
 # override these in subclasses to change defaults
@@ -170,7 +202,7 @@ sub ARRAY # value handler
     my ($z) = @_;
     if (ref $z->value eq 'ARRAY')       # if it's an ARRAY
     {
-      foreach ( @{$z->value} )          # for each value in the array
+     foreach ( @{$z->value} )          # for each value in the array
       {
         # witout cloning the object
         $z->value = $_    ;             # set the value for the zone
@@ -219,6 +251,7 @@ sub CODE # value handler
 sub _EVAL_            ;
 sub _EVAL_ATTRIBUTES_ ;
 sub TRACE_DELETIONS   ;
+sub INCLUDE_TEXT      ;
 sub ID_list           ;
 
 1;
@@ -266,8 +299,23 @@ sub TRACE_DELETIONS # zone handler
       { $z->output_process ('<<'.$z->id.' not found>>') }
     elsif (not $z->output)
       { $z->output_process ('<<'.$z->id.' found but empty>>') }
-    # bypass the original processes
-    next ZONE ;
+    next ZONE ; # skip every other process
+  }
+}
+
+sub INCLUDE_TEXT # zone handler
+{
+  sub
+  {
+    my ($z) = @_;
+    if ($z->id eq 'INCLUDE_TEXT')
+    {
+      my $file = $z->attributes ;
+      open I_TEXT, $file or croak "Error opening text file \"$file\": $^E" ;
+      $z->text_process($_) while <I_TEXT> ;
+      close I_TEXT ;
+      next ZONE ;
+    }
   }
 }
 
@@ -297,7 +345,7 @@ sub ID_list
 
 Text::MagicTemplate - magic merger of runtime values with templates
 
-=head1 VERSION 3.04
+=head1 VERSION 3.05
 
 =head1 WARNING!
 
@@ -471,7 +519,7 @@ Since syntax and coding related to this module are very simple and mostly automa
 
 =item * Simple, flexible and powerful to use
 
-In simple cases, you will have just to use L<new()|"new ( [constructor_parameter] )"> and L<print(template)|"print ( template [, identifier] )"> methods, without having to pass any other value to the object: it will do the right job for you. However you can fine tune the behaviour as you need.
+In simple cases, you will have just to use L<new()|"new ( [constructor_parameter] )"> and L<print(template)|"print ( template [, identifier] )"> methods, without having to pass any other value to the object: it will do the right job for you. However you can fine tune the behaviour as you need. (see L<"CUSTOMIZATION">)
 
 =item * Extremely simple and configurable template syntax
 
@@ -483,7 +531,7 @@ By default, Text::MagicTemplate compares any I<label identifier> defined in your
 
 =item * Unlimited nested included templates
 
-Sometimes it can be useful to split a template into differents files. No nesting limit when including files into files. (see L<"Include a file">)
+Sometimes it can be useful to split a template into differents files. No nesting limit when including files into files. (see L<"Include and process a template file">)
 
 =item * Branching
 
@@ -520,6 +568,10 @@ Change your code and Text::MagicTemplate will change its behaviour accordingly. 
 =item * Small footprint
 
 The MagicTemplate system doesn't use any other module and its code (including all the standard and autoloaded handlers) is just about 300 lines of pure perl I<(easier to write that this documentation :-) )>. You don't need any compiler in order to install it on any platform.
+
+=item * Efficient and fast
+
+The internal rapresentation and storage of templates allows minimum memory requirement and completely avoid wasting copies of content. You can even include external (and probably huge) text files in the output without memory charges. (see L<"Include (huge) text files without memory charges">)
 
 =back
 
@@ -882,6 +934,7 @@ The default C<zone_handler> is undefined, so you must add explicitly any standar
     $mt = new Text::MagicTemplate
               zone_handlers => [ '_EVAL_'           ,
                                  '_EVAL_ATTRIBUTES' ,
+                                 'TEXT_INCLUDE'     ,
                                   \&my_handler      ] ;
 
 (see also L<Text::MagicTemplate::Zone/"zone_process()">)
@@ -909,6 +962,16 @@ This handler is useful if you want to pass some structure to a sub from the temp
 =item TRACE_DELETIONS
 
 This handler generates a diagnostic output for each zone that has not generated any output. It will output a string like <my_zone_id not found> or <my_zone_id found but empty> in place of the zone, so you can better understand what's going on.
+
+=item INCLUDE_TEXT
+
+This handler adds the possibility to include in the output a (probably huge) text file, without having to keep it in memory as a template, and without any other parsing.
+
+It works with the I<zone identifier> equal to 'INCLUDE_TEXT' and the I<zone attributes> equal to the file path to include. It pass each line in the file to the C<text_process> method and bypass all the other processs.
+
+(see L<"Include (huge) text files without memory charges">)
+
+B<Note>: Since this handler bypass every other process, it is useful only for text output. If you need to include and parse a real template file see L<"Include and process a template file">.
 
 =back
 
@@ -1133,13 +1196,32 @@ The same template: '{block}|before-{label}-after|{/block}'
 
 Different combinations of I<values> and I<zones> can easily produce complex ouputs: see the other topics in this section.
 
-=head2 Include a file
+=head2 Include and process a template file
 
 To include a file in a template just set a label with the pathname of the file as identifier, surrounded by quotes:
 
     {'/temp/footer.html'}
 
-The file will be included in place of the label and if it is a template, it will be processed as usual.
+The file will be included in place of the label and it will be processed as usual.
+
+Another explicit way to do so is using this label:
+
+    {INCLUDE_TEMPLATE /temp/footer.html}
+
+B<Note>: in this case do not use quote!
+
+=head2 Include (huge) text files without memory charges
+
+To include in the output a (probably huge) text file, without having to keep it in memory as a template, and without any other parsing, add the 'INCLUDE_TEXT' I<zone handler> and add a label with the I<zone identifier> equal to 'INCLUDE_TEXT' and the I<zone attributes> equal to the file path to include.
+
+    $mt = new Text::MagicTemplate
+              zone_handlers => 'INCLUDE_TEXT' ;
+
+The template label:
+
+    {INCLUDE_TEXT /path/to/text/file>}
+
+B<Note>: do not use quote!
 
 =head2 Redefine Markers
 

@@ -1,5 +1,11 @@
 Text::MagicTemplate Latest Versions Changes
 
+Version 3.05
+- New efficient and fast internal rapresentation and storage of templates.
+- Added 'INCLUDE_TEXT' standard zone handler
+- Added 'INCLUDE_TEMPLATE' standard lablel as an alias of old include lables
+- Improved POD
+
 Version 3.04
 - Pure OO code rewriting
 

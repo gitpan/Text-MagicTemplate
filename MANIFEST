@@ -31,3 +31,4 @@ t/included_test_01
 t/included_test_02
 t/template_test_01
 t/template_test_02
+t/text_file
