@@ -1,7 +1,7 @@
+#!perl -w
 use strict;
-use Test;
+use Test::More tests => 1;
 use Text::MagicTemplate;
-BEGIN {  plan tests => 1 }
 
 our ($id, $mt, $tmp, $expected, $content) ;
 $id = 15;
@@ -13,6 +13,7 @@ $mt = new Text::MagicTemplate
               if ($z->id eq '_custom_')
               {
                 $z->value = $z->attributes;
+                return undef ;
               }
             }
         };
@@ -28,4 +29,4 @@ text
 EOE
 
 $content = $mt->output(\$tmp);
-ok ($$content, $expected);
+is ($$content, $expected);

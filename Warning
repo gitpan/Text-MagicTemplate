@@ -101,8 +101,22 @@ Sloppy code:
 The former '_EVAL_' behaviour is now the '_EVAL_' zone handler and should
 be passed with the -zone_handler constructor array.
 
+================================
+For code based on version < 3.3
+================================
+
+Changed the return value of all the custom handlers: a *_handler must return a true value to end the C<*_process>, or a false value to continue the C<*_process>.
+
+The old 'last HANDLER' and 'next ZONE' statements cause a warn but should still work, while the handlers that have none of these statement at the end will not work.
+
+Change:
+'next ZONE'    with 'return 1'
+'next HANDLER' with 'return 1'
+
+Add: 'return 0' to each handler that was not ending 'next ZONE' or 'last HANDLER'.
+
 --
 Domizio Demichelis <dd@4pro.net>
-2003-10-14
+2003-02-12
 
 

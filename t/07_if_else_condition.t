@@ -1,7 +1,7 @@
+#!perl -w
 use strict;
-use Test;
+use Test::More tests => 1 ;
 use Text::MagicTemplate;
-BEGIN {  plan tests => 1 }
 
 our ($mt, $scalar_test, $content, $tmp, $OK, $OK_condition, $NO_condition);
 $mt = new Text::MagicTemplate;
@@ -12,4 +12,4 @@ $OK ? $OK_condition={} : $NO_condition={};
 
 $content = $mt->output(\$tmp);
 
-ok($$content, 'This is the OK block, containig SCALAR');
+is($$content, 'This is the OK block, containig SCALAR');

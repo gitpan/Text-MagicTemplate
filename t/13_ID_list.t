@@ -1,7 +1,8 @@
+#!perl -w
 use strict;
-use Test;
+use Test::More tests => 1 ;
 use Text::MagicTemplate;
-BEGIN {  plan tests => 1 }
+BEGIN {  plan }
 
 our ( $mt, $content, $expected, $tmp );
 
@@ -23,4 +24,4 @@ __EOS__
 
 $mt->ID_list('    ');
 $content = $mt->output(\$tmp);
-ok($$content."\n", $expected);
+is($$content."\n", $expected);

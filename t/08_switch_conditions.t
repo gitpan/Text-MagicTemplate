@@ -1,9 +1,8 @@
+#!perl -w
 use strict;
 no strict 'refs';
-use Test;
+use Test::More  tests => 1;
 use Text::MagicTemplate;
-BEGIN {  plan tests => 1 }
-
 
 our ($mt, $a_scalar_1, $a_scalar_2, $type, $content, $tmp);
 $mt = new Text::MagicTemplate;
@@ -16,4 +15,4 @@ $$type      = {};
 
 $content = $mt->output(\$tmp);
 
-ok($$content, 'type D block with THE SCALAR 2');
+is($$content, 'type D block with THE SCALAR 2');

@@ -1,12 +1,13 @@
+#!perl -w
 use strict;
-use Test;
+use Test::More tests => 1;
 use Text::MagicTemplate;
-BEGIN {  plan tests => 1 }
 
 our ($id, $mt, $tmp, $expected, $content) ;
 $id = 15;
-$mt = new Text::MagicTemplate { -markers       => 'HTML',
-                                -zone_handlers => '_EVAL_ATTRIBUTES_'  };
+$mt = new Text::MagicTemplate
+          markers       => 'HTML',
+          zone_handlers => '_EVAL_ATTRIBUTES_' ;
 
 $tmp = 'text <!--{my_param {a=>1,b=>2}}--> text <!--{id}--> text';
 
@@ -19,4 +20,4 @@ sub my_param
 $expected = 'text 12 text 15 text';
 
 $content = $mt->output(\$tmp);
-ok ($$content, $expected);
+is ($$content, $expected);

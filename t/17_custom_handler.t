@@ -1,7 +1,7 @@
+#!perl -w
 use strict;
-use Test;
+use Test::More tests => 1;
 use Text::MagicTemplate;
-BEGIN {  plan tests => 1 }
 
 our ($mt, $_custom_, $content) ;
 $mt = new Text::MagicTemplate
@@ -13,7 +13,7 @@ $mt = new Text::MagicTemplate
                  {
                    $z->value = join '|', @{$z->value};
                    $z->value_process;
-                   last HANDLER;
+                   return 1;
                  }
                 },
                 'SCALAR',
@@ -22,5 +22,5 @@ $mt = new Text::MagicTemplate
 $_custom_ = [ 1..5 ];
 my $t = 'text {_custom_}n|n|n...{/_custom_} text {id} text';
 $content = $mt->output(\$t);
-ok ($$content, 'text 1|2|3|4|5 text  text');
+is ($$content, 'text 1|2|3|4|5 text  text');
 

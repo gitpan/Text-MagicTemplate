@@ -1,7 +1,7 @@
-use strict ;
-use Test;
+#!perl -w
+use strict;
+use Test::More tests => 1;
 use Text::MagicTemplate;
-BEGIN {  plan tests => 1 }
 
 our ($mt, $content, $tmp, $my_loop);
 
@@ -9,7 +9,7 @@ $mt = new Text::MagicTemplate;
 $tmp = 'A loop:{my_loop}|Date: {date} - Operation: {operation}{/my_loop}|';
 
 $content = $mt->output(\$tmp);
-ok ($$content, 'A loop:|Date: 8-2-02 - Operation: purchase|Date: 9-3-02 - Operation: payment|');
+is ($$content, 'A loop:|Date: 8-2-02 - Operation: purchase|Date: 9-3-02 - Operation: payment|');
 
 sub my_loop
 {

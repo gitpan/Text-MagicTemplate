@@ -1,7 +1,7 @@
+#!perl -w
 use strict;
-use Test;
+use Test::More tests => 2 ;
 use Text::MagicTemplate;
-BEGIN {  plan tests => 2 }
 
 our ($mt1, $mt2, $name, $surname, $content, $tmp);
 $mt1 = new Text::MagicTemplate  markers     => 'HTML' ;
@@ -14,9 +14,9 @@ $surname = 'Demichelis';
 
 $content = $mt2->output(\$tmp);
 
-ok($$content, '<p><hr>Name: <b>Domizio</b><br>Surname: <b>Demichelis</b><hr></p>');
+is($$content, '<p><hr>Name: <b>Domizio</b><br>Surname: <b>Demichelis</b><hr></p>');
 
 $content = $mt1->output(\$tmp);
 
-ok($$content, '<p><hr>Name: <b>Domizio</b><br>Surname: <b>Demichelis</b><hr></p>');
+is($$content, '<p><hr>Name: <b>Domizio</b><br>Surname: <b>Demichelis</b><hr></p>');
 

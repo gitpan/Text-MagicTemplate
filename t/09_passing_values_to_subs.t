@@ -1,8 +1,7 @@
+#!perl -w
 use strict;
-use Test;
+use Test::More tests => 1 ;
 use Text::MagicTemplate;
-BEGIN {  plan tests => 1 }
-
 
 our ($mt, $char, $num, $content, $tmp);
 $mt = new Text::MagicTemplate;
@@ -13,6 +12,6 @@ $num = 5;
 sub perl_eval { eval shift()->content }
 
 $content = $mt->output(\$tmp);
-ok($$content, 'text before WWWWWW text after');
+is($$content, 'text before WWWWWW text after');
 
 

@@ -1,7 +1,6 @@
 use strict ;
-use Test;
+use Test::More tests => 1 ;
 use Text::MagicTemplate;
-BEGIN {  plan tests => 1 }
 
 our ($mt, $content, $tmp, $my_nested_loop);
 
@@ -29,4 +28,4 @@ $my_nested_loop = [
                   ] ;
 
 $content = $mt->output(\$tmp);
-ok($$content, 'A nested loop:|Date: 8-2-02 - Operation: purchase - Details: - 5 balls - 3 cubes - 6 cones - |Date: 9-3-02 - Operation: payment - Details: - 2 cones - 4 cubes - |');
+is($$content, 'A nested loop:|Date: 8-2-02 - Operation: purchase - Details: - 5 balls - 3 cubes - 6 cones - |Date: 9-3-02 - Operation: payment - Details: - 2 cones - 4 cubes - |');

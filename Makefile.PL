@@ -10,7 +10,3 @@ WriteMakefile
      : (),
 );
 
-
-sub MY::tool_autosplit
-{ 'AUTOSPLITFILE => $(PERLRUN) -MAutoSplit  -e "autosplit($$ARGV[0], $$ARGV[1], 1, 0, 0);"'}
-

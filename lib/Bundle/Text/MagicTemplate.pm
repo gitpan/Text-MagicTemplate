@@ -1,5 +1,5 @@
 package Bundle::Text::MagicTemplate;
-$VERSION = 3.12;
+$VERSION = 3.3;
 __END__
 
 =head1 NAME
@@ -21,8 +21,6 @@ HTML::Parser            - used by HTML::FillInForm and HTML::TableTiler
 HTML::TableTiler        - used by HTML::MagicTemplate
 
 HTML::FillInForm        - used by HTML::MagicTemplate
-
-HTML::MagicTemplate     - the HTML extensions collection
 
 =head1 DESCRIPTION
 

@@ -1,7 +1,7 @@
+#!perl -w
 use strict;
-use Test;
+use Test::More tests => 1;
 use Text::MagicTemplate;
-BEGIN {  plan tests => 1 }
 
 
 package Local::foo;
@@ -38,4 +38,4 @@ our ($scalar, $f, $content) ;
 $scalar = 'SCALAR';
 $f = new Local::foo;
 $content = $f->my_output();
-ok($$content, 'text before PLACEHOLDER text after');
+is($$content, 'text before PLACEHOLDER text after');

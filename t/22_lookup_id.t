@@ -1,7 +1,7 @@
+#!perl -w
 use strict;
-use Test;
+use Test::More tests => 1;
 use Text::MagicTemplate;
-BEGIN {  plan tests => 1 }
 
 my $template = << 'EOT' ;
 <!--{message}-->
@@ -65,4 +65,4 @@ my $expected = << 'EOE';
 
 EOE
 
-ok($$output, $expected);
+is($$output, $expected);

@@ -1,7 +1,7 @@
+#!perl -w
 use strict;
-use Test;
+use Test::More tests => 1;
 use Text::MagicTemplate;
-BEGIN {  plan tests => 1 }
 
 our ( $mt, $scalar_test, $empty, $content, $expected, $tmp );
 
@@ -16,4 +16,4 @@ text <<empty found but empty>> from template SCALAR,<<simulated_area not found>>
 __EOS__
 
 $content = $mt->output(\$tmp);
-ok($$content."\n", $expected);
+is($$content."\n", $expected);
