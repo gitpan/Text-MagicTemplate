@@ -1,5 +1,3 @@
-use test::Harness qw( $verbose );
-$verbose=1;
 use Test;
 BEGIN { plan tests => 10 }
 
