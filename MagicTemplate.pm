@@ -1,107 +1,92 @@
 package Text::MagicTemplate;
-$VERSION = '1.25';
+$VERSION = '1.3';
 use 5.005;
 use Carp qw ( croak );
 use strict; no strict "refs";
 
-__PACKAGE__->syntax ( qw|{ / }| );
-
-sub new
-{
-    my $c = shift;
-    my $s ;
-    @_ ? @$s = @_ : $s->[0] = (caller)[0];
-    bless $s, $c;
-}
+__PACKAGE__->syntax( qw|{ / }| );
 
 sub syntax
 {
     my $c = shift;
-    (${$c.'::_START'}, ${$c.'::_END_ID'}, ${$c.'::_END'}) = map qr($_), @_ if @_;
-    (${$c.'::_START'}, ${$c.'::_END_ID'}, ${$c.'::_END'});
+    if (@_ == 3) { @{$c.'::SYNTAX'} = map qr/$_/s, @_, '(?:\s\w+)*', '\w+' }
+    else         { croak 'Wrong number of syntax markers: got '. @_ . ', expected 3.' }
 }
 
-sub print              { print ${&output} }
-sub output             { \$_[0]->_block( ${&get_block} ) }
-sub code_execution_ON  { ${shift().'::_NO_CODE'} = 0 }
-sub code_execution_OFF { ${shift().'::_NO_CODE'} = 1 }
+sub new            { my $c=shift; bless { location => @_?[@_]:[(caller)[0]] }, $c }
+sub print          { print ${&output} }
+sub output         { \$_[0]->_parse(${&get_block}) }
+sub subs_execution { ${$_[0].'::_NS'} = ! $_[1] }
 
 sub get_block
 {
-    my ($type, $temp, $id) = @_;
-    my $c = ref $type || $type;
-    my ($S, $I, $E) = $c->syntax;
-    if (ref $temp) { $temp = $$temp }
-    else           { open INP, $temp or croak "Error opening template file \"$temp\" ($!)";
-                     $temp = do {local $/; <INP>}; close INP; }
+    my ($c, $temp, $id) = @_;
+    $temp = _read_temp($temp);
+    my ($S, $I, $E, $A) = @{(ref $c || $c).'::SYNTAX'};
     $temp =~ s/ $S ('|") (.*?) \1 $E /${$c->get_block($2)}/xgse;   # include
-    ($temp) = $temp =~ /($S $id $E .*? $S $I $id $E)/xs if $id;
+    ($temp) = $temp =~ /( $S$id$A$E (?: (?! $S$id$A$E) (?! $S$I$id$E) . )* $S$I$id$E )/xs if $id;
     \$temp;
+}
+
+sub _read_temp
+{
+    local $_ = shift || croak 'No parameter passed as template';
+    if    (ref eq 'SCALAR') { $_ = $$_ }
+    elsif (ref eq 'GLOB' || ref \$_ eq 'GLOB'){ $_ = do{local $/; <$_>} }
+    elsif ($_ && !ref) { open _ or croak "Error opening the file \"$_\": ($^E)";
+                           $_ = do{local $/; <_>}; close _ }
+    else  { croak 'Wrong template parameter type: '. (ref||'UNDEF') }
+    $_ or croak 'The template content is empty';
 }
 
 sub set_block
 {
-    my ($c, $temp, $id, $new_content) = @_;
-    my ($S, $I, $E) = $c->syntax;
+    my ($c, $temp, $id, $new) = @_;
+    my ($S, $I, $E, $A) = @{$c.'::SYNTAX'};
     $temp = $c->get_block($temp);
-    $new_content = $$new_content if ref $new_content;
-    $$temp =~ s/ $S $id $E .*? $S $I $id $E /$new_content/xsg ;
+    $$temp =~ s/ $S$id$A$E (?: (?! $S$id$A$E) (?! $S$I$id$E) . )* $S$I$id$E /$$new||$new/xgse ;
     $temp;
 }
 
-sub _block
+sub _parse
 {
-    my ($s, $content, $ref) = @_;
-    my ($S, $I, $E) = ref($s)->syntax;
-    $content =~ s/ $S (\w+) $E (?: (.*?) $S $I \1 $E )? /$s->_lookup($2, $1, $ref)/xsge ;
-    $content;
+    my ($s, $temp, $v) = @_;
+    my ($S, $I, $E, $A, $ID) = @{ref($s).'::SYNTAX'};
+    $temp =~ s/ $S($ID)($A)$E  (?: ( (?: (?! $S\1$A$E) (?! $S$I\1$E) . )* )  $S$I\1$E  )?
+              /$s->_lookup({ id=>$1, attributes=>$2 && substr($2, 1), content=>$3 }, $v)/xgse ;
+    $temp;
 }
 
 sub _lookup
 {
-    my ($s, $content, $id, $hash_ref) = @_;
-    my @item = $hash_ref || @$s;
-    foreach my $location (@item)
+    my ($s, $t, $v) = @_;
+    for ($v || @{$s->{location}})
     {
-        if (not ref $location)
-        {
-            local *sym = '*'.$location.'::'.$id;
-            if    (defined &{*sym} and not ${ref ($s).'::_NO_CODE'}) { return $s->_value ($content, &{*sym}($content)) }
-            elsif (defined ${*sym}) { return $s->_value ($content, ${*sym}) }
-            elsif (defined @{*sym}) { return $s->_loop  ($content, \@{*sym}) }
-            elsif (defined %{*sym}) { return $s->_block ($content, \%{*sym}) }
-        }
-        elsif ( ref $location eq 'HASH' and exists $location->{$id} ) { return $s->_value($content, $location->{$id}) }
+        if (!ref) { local *S = '*'.$_.'::'.$t->{id}; return $s->_value($t, ${*S}||*S{CODE}||*S{ARRAY}||*S{HASH}) }
+        elsif ( $_->{$t->{id}} )                   { return $s->_value($t, $_->{$t->{id}}) }
     }
-    if  ($hash_ref) { return $s->_lookup ( $content, $id ) }
-    else            { return undef }
+    $s->_lookup( $t ) if $v;
 }
 
 sub _value
 {
-    my ($s, $content, $value) = @_;
-    if    (ref $value eq 'CODE' and not ${ref ($s).'::_NO_CODE'})  { return $s->_value ($content, &$value($content)) }
-    elsif (not ref $value)        { return $value }
-    elsif (ref $value eq 'SCALAR'){ return $$value }
-    elsif (ref $value eq 'ARRAY') { return $s->_loop  ($content, $value) }
-    elsif (ref $value eq 'HASH')  { return $s->_block ($content, $value) }
-}
-
-sub _loop
-{
-    my ($s, $content, $arr_ref) = @_;
-    my ($loop_content);
-    for my $i (0..$#$arr_ref) { $loop_content .= $s->_value($content, $arr_ref->[$i]) }
-    $loop_content;
+    my ($s, $t, $v) = @_; my $rv = ref $v;
+    if    (! $rv)                             { $v }
+    elsif ($rv=~/(SCALAR|REF)/)               { $s->_value($t, $$v) }
+    elsif ($rv=~/CODE/ &&! ${ref($s).'::_NS'}){ $s->_value($t, $v->($t->{content})) }
+    elsif ($rv=~/ARRAY/)                      { join '', map {$s->_value($t, $_)} @$v }
+    elsif ($rv=~/HASH/)                       { $s->_parse($t->{content}, $v) }
 }
 
 sub set_ID_output
 {
     require Text::MagicTemplate::Utilities;
-    import Text::MagicTemplate::Utilities qw ( _block ) ; # redefine subs
+    import Text::MagicTemplate::Utilities qw( _parse ) ; # redefine subs
 }
 
-sub code_execution     { &code_execution_ON }  # deprecated alias
-sub no_code_execution  { &code_execution_OFF } # deprecated alias
+sub code_execution_ON  { $_[0]->subs_execution(1) } # deprecated alias
+sub code_execution_OFF { $_[0]->subs_execution(0) } # deprecated alias
+sub code_execution     { $_[0]->subs_execution(1) } # deprecated alias
+sub no_code_execution  { $_[0]->subs_execution(0) } # deprecated alias
 
 1;

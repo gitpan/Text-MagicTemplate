@@ -131,13 +131,13 @@ Change your code and Text::MagicTemplate will change its behaviour accordingly. 
 
 =item * Very lightweight
 
-F<MagicTemplate.pm> doesn't use any other module and its code is just about 100 lines I<(easier to write that this documentation :-) )>
+F<MagicTemplate.pm> doesn't use any other module and its code is just about 90 lines I<(easier to write that this documentation :-) )>
 
 =back
 
 =head2 How it works
 
-The Text::MagicTemplate object is a blessed array containing locations that it uses to look up I<identifiers>. This array can store package namespaces or references to hashes. If no parameter is passed to the constructor, the package namespace of the caller will be used by default.
+The Text::MagicTemplate object is a blessed hash containing locations that it uses to look up I<identifiers>. The locations array can store package namespaces or references to hashes. If no parameter is passed to the constructor, the package namespace of the caller will be used by default.
 
 Text::MagicTemplate compares any I<label identifier> defined in your template with any I<variable> or I<subroutine identifier> (for package locations) or I<key> (for hash locations) defined in each stored location. When it find a match, it looks for the value. If the value represents a CODE, it will be executed (passing to the subroutine the content of the block itself as a parameter) to achieve a returned value; if the value represents a reference, it will be dereferenced until the actual value will be achieved.
 
@@ -206,6 +206,18 @@ B<Examples>:
 
 
 Different combinations of I<values, labels> and I<blocks> can easily produce complex ouputs. See the L<"HOW TO..."> section in this documentation.
+
+=head2 Illegal blocks
+
+Each block in the template can contain arbitrary quantities of nested labels and/or blocks, but it cannot contain itself (a block with its same identifier), or cannot be cross-nested.
+
+B<Legal  block>: {block1}...{block2}...{/block2}...{/block1}
+
+B<Illegal auto-nested block>: {block1}...{block1}...{/block1}...{/block1}
+
+B<Illegal cross-nested block>: {block1}...{block2}...{/block1}...{/block2}
+
+If the template contains any illegal block, unpredictable behaviours may occur.
 
 =head2 Bypassing the rules
 
@@ -287,7 +299,7 @@ Note that the default syntax markers ({/}) could somehow clash with perl blocks,
 
 =item new ( [lookup_list] )
 
-The constructor method creates a blessed array reference. This array contains locations where the methods will look up the identifiers present in the template. Locations are packages or hashes: with packages locations, the lookup is done with all the IDENTIFIERS defined in the package namespace, with hash locations it is done with the KEYS existing in the hash.
+The constructor method creates a blessed hash reference. The object contains an array of locations where the methods will look up the identifiers present in the template. Locations are packages or hashes: with packages locations, the lookup is done with all the IDENTIFIERS defined in the package namespace, with hash locations it is done with the KEYS existing in the hash.
 
 If you want to make available all the identifiers of your current package, just call the constructor without parameters:
 
@@ -312,29 +324,35 @@ In this example, the lookup will be done in C<%my_hash> first - if unsuccessful 
 
 =item output ( template [, identifier] )
 
-This method merges the runtime values with the template and returns a reference to the output. It accept one I<template> parameter that can be a string or a reference. If it is a string it is considered to be a path to a template file; if it is a reference, it is considered to be a reference to a template content. If any I<identifier> is passed, it returns a reference to the output of just that block.
+This method merges the runtime values with the template and returns a reference to the output. It accepts one I<template> parameter that can be a reference to a SCALAR content, a path to a template file or a filehandle. If any I<identifier> is passed, it returns a reference to the output of just that block.
 
     # template is a path
-    $output = $mt->output( '/temp/template_file.html' );
+    $output = $mt->output( '/temp/template_file.html' ) ;
 
     # template is a reference
-    $output = $mt->output( $tpl_content );
+    $output = $mt->output( \$tpl_content ) ;
+
+    #template is a filehandler
+    $output = $mt->output( *FILEHANDLER );
 
     # this limits the output to just 'my_block_identifier'
-    $my_block_output = $mt->output( $tpl_content, 'my_block_identifier' );
+    $my_block_output = $mt->output( \$tpl_content, 'my_block_identifier');
 
 =item print ( template [, identifier] )
 
-This method merges the runtime values with the template and prints the output. The I<template> can be a string or a reference. If it is a string it is considered to be a path to a template file; if it is a reference, it is considered to be a reference to a template content. If any I<identifier> is passed, it prints the output of just that block.
+This method merges the runtime values with the template and prints the output. It accepts one I<template> parameter that can be a reference to a SCALAR content, a path to a template file or a filehandle. If any I<identifier> is passed, it prints the output of just that block.
 
     # template is a path
     $mt->print( '/temp/template_file.html' );
 
     # template is a reference
-    $mt->print( $tpl_content );
+    $mt->print( \$tpl_content ) ;
+
+    #template is a filehandler
+    $mt->print( *FILEHANDLER );
 
     # this limits the output to just 'my_block_identifier'
-    $mt->print( $tpl_content, 'my_block_identifier' );
+    $mt->print( \$tpl_content, 'my_block_identifier' );
 
 =back
 
@@ -353,7 +371,7 @@ B<Examples>
     ... Text::MagicTemplate->get_block ( ....... )
     ... Text::MagicTemplate->set_block ( ....... )
     ... Text::MagicTemplate::HTML->get_block ( ....... )
-    ... myCustomSyntax->set_block ( ....... )
+    ... Local::myCustomSyntax->set_block ( ....... )
     ... Text::MagicTemplate::HTML->no_code_execution
     ...
 
@@ -377,27 +395,30 @@ These are the default values of the markers that define the label.
 
 You can redefine them using this static method:
 
-    Text::MagicTemplate->syntax qw|__ END_ __|;
+    Text::MagicTemplate->syntax (qw|__ END_ __|);
 
 where '__' is the START_MARKER, 'END_' is the END_MARKER_ID and '__' is the END_MARKER;
 
-The syntax() static method returns the list of the markers:
+NOTE: Each parameter of syntax static method is parsed as a regular expression as: C<qr/parameter/>, so you can extend the syntax beyond a static string marker. This syntax:
 
-    my ($start_marker, $end_marker_id, $end_marker) = Text::MagicTemplate->syntax;
+    Text::MagicTemplate->syntax ('\d{3}', '\W', '\d{3}'); # weird markers :-)
+
+will match this block:
+
+    235identifier690 content of block 563-identifier054
 
 See L<"Redefine Syntax"> to have more details.
 
-=item code_execution_OFF ()
+=item subs_execution ()
 
-This static method disables the execution of subroutines from your code. (see L<"CAVEATS"> for details).
+This static method enable or disables the execution of subroutines from your code. Default enabled. (see L<"CAVEATS"> for details).
 
-=item code_execution_ON ()
-
-This static method enables the execution of subroutines from your code. Since this feature is enabled by default, you need it only if you have used the code_execution_OFF() static method before.
+    Text::MagicTemplate->subs_execution( 0 );
+    Text::MagicTemplate->subs_execution( 1 );
 
 =item get_block ( template [, identifier] )
 
-This static method returns a reference to the template content or to a block inside the template, without merging values. The I<template> can be a string or a reference. If it is a string it is considered to be a path to a template file; if it is a reference, it is considered to be a reference to a template content. If any I<identifier> is passed, it returns just that block.
+This static method returns a reference to the template content or to a block inside the template, without merging values. It accepts one I<template> parameter that can be a reference to a SCALAR content, a path to a template file or a filehandle. If any I<identifier> is passed, it returns just that block.
 
     # this returns a ref to the whole template content
     $tpl_content = Text::MagicTemplate->get_block ( '/temp/template_file.html' );
@@ -410,7 +431,7 @@ This static method returns a reference to the template content or to a block ins
 
 =item set_block ( template, identifier, new_content )
 
-This static method sets the content of the block (or blocks) I<identifier> inside a I<template> - without merging values - and returns a reference to the changed template. The I<template> can be a string or a reference. If it is a string it is considered to be a path to a template file; if it is a reference, it is considered to be a reference to a template content. I<New_content> can be a reference to the content or the content itself.
+This static method sets the content of the block (or blocks) I<identifier> inside a I<template> - without merging values - and returns a reference to the changed template. It accepts one I<template> parameter that can be a reference to a SCALAR content, a path to a template file or a filehandle. I<New_content> can be a reference to the content or the content itself.
 
     # this return a ref to the 'my_block' block
     $new_content = Text::MagicTemplate->get_block ( '/temp/template_file_2.html', 'my_block' );
@@ -424,13 +445,9 @@ Calling this method will redefine some behaviours of the module, so your program
 
 (see L<"Prepare the identifiers description list">)
 
-=item no_code_execution ()
+=item Deprecated methods
 
-Deprecated method maintained for backward compatibility: use code_execution_OFF() instead.
-
-=item code_execution ()
-
-Deprecated method maintained for backward compatibility: use code_execution_ON() instead.
+C<no_code_execution()>, C<code_execution()>, C<code_execution_ON()>, C<code_execution_OFF()> : use subs_execution() instead.
 
 =back
 
@@ -461,32 +478,32 @@ The standard installation comes with a HTML friendly syntax module that implemen
 To redefine syntax use the C<syntax()> static method, directly in your code:
 
     use Text::MagicTemplate;
-    Text::MagicTemplate->syntax qw|{ / }|;  # redefine the markers as needed
+    Text::MagicTemplate->syntax( qw|<- / ->| );  # redefine the markers as needed
 
 =item by subclassing Text::MagicTemplate class
 
 If you need some custom and permanent solution you can subclass the C<Text::MagicTemplate> class. As an added benefit, this method allows you to use different syntaxes in the same script.
 
-This is an example that explains you how to write and use a custom syntax module F<myCustomSyntax.pm> I<(obviously you can use the class name you prefer)>.
+This is an example that explains you how to write and use a custom syntax module F<Local::myCustomSyntax.pm> I<(obviously you can use the class name you prefer)>.
 
-Redefine the markers and save this code as file F<myCustomSyntax.pm>
+Redefine the markers and save this code as file F<Local::myCustomSyntax.pm>
 
-    package myCustomSyntax; # choose a meaningful package namespace :-)
+    package Local::myCustomSyntax; # choose a meaningful package namespace :-)
     use Text::MagicTemplate;
     push @ISA, qw(Text::MagicTemplate);
 
-    __PACKAGE__->syntax ( qw|__ END_ __| ); # redefine these values as needed
+    __PACKAGE__->syntax( qw|__ END_ __| ); # redefine these values as needed
 
     1;
 
 Use it by loading the module as usual:
 
-    use myCustomSyntax;
+    use Local::myCustomSyntax;
 
 and use methods as usual...
 
-    $mt = new myCustomSyntax;
-    $mt->print ( 'my_custom_template_file' );
+    $mt = new Local::myCustomSyntax;
+    $mt->print( 'my_custom_template_file' );
 
 This syntax would work with this block labeled 'my_identifier':
 
@@ -823,7 +840,7 @@ Read this section just in case you are planning to allow untrustworthy people to
 
 F<MagicTemplate.pm> does not use any eval() statement, it just do a recursive search and replace with the content of the template. Besides, the allowed characters for identifiers are only alphanumeric C<(\w+)>, so even dealing with tainted templates should not raise any security problem that you wouldn't have in your program itself.
 
-However, since the module is just about 100 lines of code, you should consider to analise it directly. If you do this, please send me some feedback.
+However, since the module is just about 90 lines of code, you should consider to analise it directly. If you do this, please send me some feedback.
 
 =head3 Avoid unwanted executions
 
@@ -840,19 +857,19 @@ This module can execute the subroutines of your code whenever it matches a label
 
 With this code, a malicious person allowed to edit the template could add the label I<{my_potentially_dangerous_sub}> in the template and that label would trigger the deletion of 'database_file'.
 
-=item code with no_code_execution
+=item code with subs_execution disabled
 
 Use the same code, but add this line:
 
-    Text::MagicTemplate->no_code_execution;
+    Text::MagicTemplate->subs_execution(0);
 
 ... so Text::MagicTemplate will execute no subroutines
 
 Note that if you use a subclass - as C<Text::MagicTemplate::HTML> - you must use the correct subclass name:
 
-    Text::MagicTemplate::HTML->no_code_execution;
+    Text::MagicTemplate::HTML->subs_execution(0);
     # or
-    myCustomSyntax->no_code_execution;
+    Local::myCustomSyntax->subs_execution(0);
 
 =item code with restricted lookups
 
@@ -870,7 +887,7 @@ With this code the lookup is restricted to just the identifiers used in the temp
 
 =item behaviour
 
-The action generated by Text::MagicTemplate and triggered by the value type. (i.e. an UNDEF value type trigger the deletion of the label or the block, a ARRAY value type generate a loop).
+The action generated by Text::MagicTemplate and triggered by the value type. (i.e. an UNDEF value type triggers the deletion of the label or the block, a ARRAY value type generate a loop).
 
 =item block
 
@@ -973,6 +990,6 @@ Copyright (c)2002 Domizio Demichelis. All Rights Reserved. This module is free s
 
 This module may not be modified without first notifying the author (this is to enable me to track modifications). In all cases the copyright header should remain fully intact in all modifications.
 
-This code is provided on an "As Is'' basis, without warranty, expressed or implied. The author disclaims all warranties with regard to this software, including all implied warranties of merchantability and fitness, in no event shall the author, Domizio Demichelis be liable for any special, indirect or consequential damages or any damages whatsoever including but not limited to loss of use, data or profits. By using this module you agree to indemnify Domizio Demichelis from any liability that might arise from it is use. Should this code prove defective, you assume the cost of any and all necessary repairs, servicing, correction and any other costs arising directly or indrectly from it is use.
+This code is provided on an "As Is'' basis, without warranty, expressed or implied. The author disclaims all warranties with regard to this software, including all implied warranties of merchantability and fitness, in no event shall the author, be liable for any special, indirect or consequential damages or any damages whatsoever including but not limited to loss of use, data or profits. By using this module you agree to indemnify the author from any liability that might arise from it is use. Should this code prove defective, you assume the cost of any and all necessary repairs, servicing, correction and any other costs arising directly or indrectly from it is use.
 
 The copyright notice must remain fully intact at all times. Use of this program or its output constitutes acceptance of these terms.
