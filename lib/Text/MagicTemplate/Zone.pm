@@ -1,5 +1,5 @@
 package Text::MagicTemplate::Zone ;
-$VERSION = 3.14                   ;
+$VERSION = 3.2                    ;
 use 5.005                         ;
 use strict                        ;
 our $AUTOLOAD                     ;
@@ -11,19 +11,30 @@ sub content_process
   my ($z) = @_ ;
   ZONE: for ( my $i = $z->_s ; $i <= $z->_e ; $i++ )
   {
-    my $item = $z->mt->{template}[$i] ;
-    if ( not $item->{z} ) { $z->text_process($item->{c}) }
-    else
+    my $struct = $z->_t->[$i][1] ;
+    if    ( ref $struct eq 'ARRAY' ) # included template
     {
-      my $nz = ref($z)->new( { %{$item->{z}}              ,
+      my $nz = ref($z)->new( { _s        => 0             ,
+                               _e        => $#$struct     ,
+                               _t        => $struct       ,
+                               mt        => $z->mt        ,
+                               level     => $z->level     ,
+                               container => $z->container } ) ;
+      $nz->content_process ;
+    }
+    elsif ( ref $struct eq 'HASH' ) # zone
+    {
+      my $nz = ref($z)->new( { %$struct                   ,
+                               _t        => $z->_t        ,
+                               mt        => $z->mt        ,
                                level     => $z->level + 1 ,
-                               container => $z            ,
-                               mt        => $z->mt        } ) ;
+                               container => $z            } ) ;
       $i = $nz->_e + 1 if $nz->_e ;
       $nz->zone_process   ;
       $nz->lookup_process ;
       $nz->value_process  ;
     }
+    else { $z->text_process($z->_t->[$i][0]) } # texts
   }
 }
 
@@ -74,9 +85,9 @@ sub value_process
 
 sub content
 {
-  my ($z, $t) = @_ ;
+  my ($z) = @_ ;
   return unless $z->_e;
-  join '', map {$_->{c}} @{$z->mt->{template}}[$z->_s..$z->_e]
+  join '', map {$_->[0]} @{$z->_t}[$z->_s..$z->_e]
 }
 
 sub AUTOLOAD :lvalue
@@ -104,7 +115,7 @@ __END__
 
 Text::MagicTemplate::Zone - The Zone object
 
-=head1 VERSION 3.14
+=head1 VERSION 3.2
 
 =head1 DESCRIPTION
 
@@ -336,6 +347,10 @@ B<Note>: In order to make it work, if the found value is a SCALAR or a REFERENCE
 =head2 output
 
 This property holds the B<output string> coming from the code.
+
+=head2 _t
+
+This property holds the reference to the template structure.
 
 =head2 _s
 

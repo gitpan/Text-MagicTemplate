@@ -1,5 +1,5 @@
 package Text::MagicTemplate   ;
-$VERSION = 3.14               ;
+$VERSION = 3.2                ;
 use 5.005                     ;
 use Carp qw ( croak )         ;
 use strict                    ;
@@ -65,8 +65,7 @@ sub get_block
   $t = $s->read_temp($t) unless ref $t eq 'SCALAR' ;
   $$t or croak 'The template content is empty' ;
   my ($S, $I, $E, $A) = @{$s->{-markers}} ;
-  $$t =~ s/ $S ('|") (.*?) \1 $E /${$s->get_block($2)}/xgse; #include
-  $$t =~ s/(?:$S)INCLUDE_TEMPLATE($A)$E/${$s->get_block($1)}/gse; #include
+  $$t =~ s/ $S ('|") (.*?) \1 $E /${$s->get_block($2)}/xgse; # deprecated include
   if ($id) { ($$t) = $$t =~ /( $S$id$A$E
                              (?: (?! $S$id$A$E) (?! $S$I$id$E) . )*
                              $S$I$id$E )/xs }
@@ -99,70 +98,71 @@ sub set_block
 sub output
 {
   my ($s) = shift ;
-  $s->_start_process( @_, $s->DEFAULT_OUTPUT_HANDLERS )
+  $s->_process( @_, $s->DEFAULT_OUTPUT_HANDLERS )
 }
 
 sub print
 {
   my ($s) = shift ;
-  $s->_start_process( @_, $s->DEFAULT_PRINT_HANDLERS )
+  $s->_process( @_, $s->DEFAULT_PRINT_HANDLERS )
 }
 
-sub _start_process
+sub _process
 {
   my ($s) = shift ;
   my ($h) = pop ;
   $s = $s->new( { -lookups => [ (caller)[0] ] } ) unless ref $s ;
   $s->{-output_handlers} ||= [ $h ] ;
   $s->{-text_handlers}   ||= $s->{-output_handlers} ;
-  $s->{template} = $s->_template(@_) ;
-  my $z = new Text::MagicTemplate::Zone { _s    => 0                  ,
-                                          _e    => $#{$s->{template}} ,
-                                          mt    => $s                 ,
-                                          level => -1                 } ;
+  my $template = $s->_cache(@_) ;
+  my $z = new Text::MagicTemplate::Zone { _s    => 0           ,
+                                          _e    => $#$template ,
+                                          _t    => $template   ,
+                                          mt    => $s          ,
+                                          level => -1          } ;
   $z->content_process ;
   \$s->{output} if defined $s->{output}
 }
 
-sub _template
+sub _cache
 {
   my ($s) = shift ;
   my ($t) = @_ ;
   my $mtime = (stat($t))[9] ;
   if (not ref $t) # if it is a path
   {
-    if ($mtime > $s->{templates}{$t}{mtime}) # if it has to be cached
+    if ($mtime > $s->{cache}{$t}{mtime}) # if it has to be cached
     {
-      $s->{templates}{$t}{t} = $s->_split_template($s->get_block(@_)) ;
-      $s->{templates}{$t}{mtime} = $mtime ;
+      $s->{cache}{$t}{template} = $s->_parse($s->get_block(@_)) ;
+      $s->{cache}{$t}{mtime}    = $mtime ;
     }
-    $s->{templates}{$t}{t}
+    $s->{cache}{$t}{template}
   }
-  else { $s->_split_template($s->get_block(@_)) }
+  else { $s->_parse($s->get_block(@_)) }
 }
 
-sub _split_template
+sub _parse
 {
   my ($s, $t) = @_ ;
   my ($S, $I, $E, $A, $ID) = @{$s->{-markers}} ;
-  my $label       = qr/($S$I*$ID$A$E)/s  ;
-  my $start_label = qr/^$S($ID)($A)$E$/s ;
-  my $end_label   = qr/^$S$I($ID)$E$/s   ;
-  my @template    = map {
-                          {
-                            c => $_ ,
-                            z => do {    /$end_label/   &&  $1
-                                      || /$start_label/ && {id         => $1,
-                                                            attributes => $2} }
-                          }
-                        } split /$label/, $$t ;
+  my $label         = qr/($S$I*$ID$A$E)/s                  ;
+  my $start_label   = qr/^$S($ID)($A)$E$/s                 ;
+  my $end_label     = qr/^$S$I($ID)$E$/s                   ;
+  my $include_label = qr/^$S\bINCLUDE_TEMPLATE\s+($A)$E$/s ;
+  my @template = map {
+                       [ $_ ,
+                         do {    /$end_label/     && $1
+                              || /$include_label/ && $s->_cache($1)
+                              || /$start_label/   && { id         => $1 ,
+                                                       attributes => $2 } } ]
+                     } split /$label/, $$t ;
   for ( my $i = $#template; $i >= 0; $i-- )  # find end
   {
-    my $id = $template[$i]->{z};
+    my $id = $template[$i]->[1] ;
     next if (not $id or ref $id) ;
     for( my ($ii,$l)=($i-1,0) ; $ii>=0 ; $ii--,$l++ ) # find THE start
     {
-      my $the_start = $template[$ii]->{z} ;
+      my $the_start = $template[$ii]->[1] ;
       next unless ref $the_start ;          # next if not start
       next unless $the_start->{id} eq $id ; # next if not THE start
       $the_start->{_s} = $ii + 1  ;
@@ -172,7 +172,6 @@ sub _split_template
   }
   \@template ;
 }
-
 
 ############################## STANDARD HANDLERS ##############################
 
@@ -376,7 +375,7 @@ sub ID_list
 
 Text::MagicTemplate - magic merger of runtime values with templates
 
-=head1 VERSION 3.14
+=head1 VERSION 3.2
 
 =head1 WARNING!
 
@@ -480,11 +479,10 @@ The template file F<'my_template_file'>... I<(this example uses plain text for c
     Iteration #{ID}: {guy} is a {job}{/an_array_of_hashes}
     
     An included file:
-    {'my_included_file'}
-    
-    ... and another template file F<'my_included_file'>
-    that will be included...
-    
+    {INCLUDE_TEMPLATE my_included_file}
+
+... and another template file F<'my_included_file'> that will be included...
+
     this is the included file 'my_included_file'
     that contains a label: {a_scalar}
 
@@ -845,16 +843,27 @@ If you want to use the default markers, just call the new() method without any C
     $mt = new Text::MagicTemplate
               markers => [ qw( __ END_ __ ) ] ;
 
-Since each element of the markers array is parsed as a regular expression as: C<qr/element/>, you can extend the markers beyond a static string marker. This markers:
+Since each element of the markers array is parsed as a regular expression as: C<qr/element/>, you can extend the markers beyond a static string marker.
+
+These markers:
 
     # 3 weird explicit markers
     $mt = new Text::MagicTemplate
-              markers => [ '\d{3}', '\W', '\d{3}' ];
+              markers => [ '<\d+<', '\W', '>' ];
 
-will match this blocks labeled 'identifier':
+will match these blocks labeled 'identifier':
 
-    235identifier690 content of block 563-identifier054
-    123identifier321 content of block 000#identifier865
+    <35<identifier> content of block <0<-identifier>
+    <26<identifier> content of block <15<#identifier>
+
+You can also pass compiled RE:
+
+    # 3 weird explicit markers
+    $start  = qr/<\d+</ ;
+    $end_ID = qr/\W/    ;
+    $end    = qr/>/     ;
+    $mt = new Text::MagicTemplate
+              markers => [ $start, $end_ID, $end ];
 
 =head4 standard markers
 
@@ -1252,17 +1261,17 @@ Different combinations of I<values> and I<zones> can easily produce complex oupu
 
 =head2 Include and process a template file
 
-To include a file in a template just set a label with the pathname of the file as identifier, surrounded by quotes:
-
-    {'/temp/footer.html'}
-
-The file will be included in place of the label and it will be processed as usual. B<Note>: this is a deprecated way to include a template file and it's here only for backward compatibility. Pleae use the 'INCLUDE_TEMPLATE' label explained below.
-
-Another explicit way to do so is using this label:
+To include a file in a template use the I<INCLUDE_TEMPLATE> label passing the file path as the attribute:
 
     {INCLUDE_TEMPLATE /temp/footer.html}
 
-B<Note>: in this case do not use quote!
+The  F<'/temp/footer.html'> file will be included in place of the label and it will be processed (and automatically cached) as usual.
+
+A deprecated (but supported) way to include a template file is using a label with the pathname of the file as identifier, surrounded by single or double quotes:
+
+    {'/temp/footer.html'}
+
+This is less memory efficient: please use the 'INCLUDE_TEMPLATE' label instead.
 
 =head2 Include (huge) text files without memory charges
 
@@ -1894,6 +1903,10 @@ You can use a single object to cache multiple templates:
 For memory optimization see also:
 
 =over
+
+=item *
+
+L<"Include and process a template file">
 
 =item *
 

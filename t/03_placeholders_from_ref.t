@@ -10,3 +10,6 @@ $scalar_test = 'SCALAR';
 $tmp = 'text from template {scalar_test},{simulated_area} simulated text {scalar_test} {/simulated_area} end text.';
 $content = $mt->output(\$tmp);
 ok ($$content, 'text from template SCALAR, end text.');
+
+
+

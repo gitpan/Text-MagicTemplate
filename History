@@ -1,5 +1,13 @@
 Text::MagicTemplate Latest Versions Changes
 
+Version 3.2
+- Fixed the CPAN indexer problem that caused a recursive dependency
+  during the installation (thanks to Michael G Schwern)
+- Improved the include template process: now it avoids multiple caching
+  of the same included file content
+- Added _t zone property
+- Minor changes in the internal rapresentation and storage of templates
+
 Version 3.14
 - Improved POD
 
@@ -19,7 +27,7 @@ Version 3.1
 - New lookup system that accepts an identifier as parameter
 - Old 'zone_lookup' property removed
 - Zone object method 'content_process()' substitutes the deprecated 'merge()'
-- Improved internal rapresentation and storage of templates.
+- Improved internal rapresentation and storage of templates
 - Improved POD
 
 Version 3.05

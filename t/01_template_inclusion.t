@@ -18,3 +18,7 @@ $mt3 = new Text::MagicTemplate zone_handlers=>'INCLUDE_TEXT';
 $tmp3 = 'text from template {scalar_test}, {INCLUDE_TEXT t/text_file}' ;
 $content3 = $mt3->output(\$tmp3);
 ok ($$content3, 'text from template SCALAR, text from file');
+
+
+
+                                        
