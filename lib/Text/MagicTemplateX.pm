@@ -1,5 +1,5 @@
 package Text::MagicTemplateX;
-$VERSION = 2.1;
+$VERSION = 2.11;
 __END__
 
 =head1 NAME
@@ -162,17 +162,17 @@ Check other behaviours files in the Text/MagicTemplateX dir in order to better u
 
 =head1 PRIVATE METHODS
 
-This is a brief documentation of the privates method you may need to use in order to write an extension. If you are planning to do so, please, feel free to ask me for additional support.
+This is a brief documentation of the privates methods you may need to use in order to write an extension. If you are planning to do so, please, feel free to ask me for additional support.
 
-=head2 parse ( self, zone )
+=head2 parse ( zone )
 
 This method parses a template_string in order to find I<template zones>, calling the C<lookup> method each time a zone is found, thus generating the output relative to that template string.
 
-=head2 lookup ( self, zone )
+=head2 lookup ( zone )
 
 This method scans the C<-lookups> constructor array to found a value in the code, then it pass it to the C<apply_behaviour> method
 
-=head2 apply_behaviour ( self, zone )
+=head2 apply_behaviour ( zone )
 
 This method is pratically a switch conditions that calls in turn each behaviour fallback subroutine, present in the C<-behaviour> constructor array, searching a true value to return to the caller.
 

@@ -1,6 +1,6 @@
 =head1 NAME
 
-Text::MagicTemplate - magic merger of runtime values with template
+Text::MagicTemplate - magic merger of runtime values with templates
 
 =head1 WARNING!
 
@@ -550,7 +550,7 @@ Deprecated method. Use ID_list() instead.
 
 =item attributes string
 
-The I<attributes string> contains every character between the end of the label I<identifier> and the END_LABEL marker. This is optionally used to pass special parameters to the behaviour.
+The I<attributes string> contains every character between the end of the label I<identifier> and the I<end label> marker. This is optionally used to pass special parameters to the behaviour.
 
 =item behaviour
 
