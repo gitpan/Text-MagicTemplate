@@ -30,12 +30,12 @@ Installation
 - if your OS does not have any 'make' support, just copy the
 modules and the pod files:
 
-Text-MagicTemplate-1.0/MagicTemplate.pm  /perl/site/lib/Text/MagicTemplate.pm
-Text-MagicTemplate-1.0/MagicTemplate.pod  /perl/site/lib/Text/MagicTemplate.pod
-Text-MagicTemplate-1.0/MagicTemplate/HTML.pm  /perl/site/lib/Text/MagicTemplate/HTML.pm
-Text-MagicTemplate-1.0/MagicTemplate/HTML.pod  /perl/site/lib/Text/MagicTemplate/HTML.pod
-Text-MagicTemplate-1.0/MagicTemplate/Utilities.pm  /perl/site/lib/Text/MagicTemplate/Utilities.pm
-Text-MagicTemplate-1.0/MagicTemplate/Utilities.pod  /perl/site/lib/Text/MagicTemplate/Utilities.pod
+$MagicTemplate/MagicTemplate.pm  /perl/site/lib/Text/MagicTemplate.pm
+$MagicTemplate/MagicTemplate.pod  /perl/site/lib/Text/MagicTemplate.pod
+$MagicTemplate/MagicTemplate/HTML.pm  /perl/site/lib/Text/MagicTemplate/HTML.pm
+$MagicTemplate/MagicTemplate/HTML.pod  /perl/site/lib/Text/MagicTemplate/HTML.pod
+$MagicTemplate/MagicTemplate/Utilities.pm  /perl/site/lib/Text/MagicTemplate/Utilities.pm
+$MagicTemplate/MagicTemplate/Utilities.pod  /perl/site/lib/Text/MagicTemplate/Utilities.pod
 
 
 --
