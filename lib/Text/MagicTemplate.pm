@@ -1,5 +1,5 @@
 package Text::MagicTemplate   ;
-our $VERSION = 3.05           ;
+$VERSION = 3.1                ;
 use 5.005                     ;
 use Carp qw ( croak )         ;
 use strict                    ;
@@ -115,48 +115,78 @@ sub _start_process
   $s = $s->new( { -lookups => [ (caller)[0] ] } ) unless ref $s ;
   $s->{-output_handlers} ||= [ $h ] ;
   $s->{-text_handlers}   ||= $s->{-output_handlers} ;
-  $s->_store_template(@_) ;
-  my $z = new Text::MagicTemplate::Zone { _s    => 0               ,
-                                          _e    => $#{$s->{zones}} ,
-                                          mt    => $s              ,
-                                          level => -1              } ;
-  $z->merge ;
+  $s->{template} = $s->_template(@_) ;
+  my $z = new Text::MagicTemplate::Zone { _s    => 0                  ,
+                                          _e    => $#{$s->{template}} ,
+                                          mt    => $s                 ,
+                                          level => -1                 } ;
+  $z->content_process ;
   \$s->{output} if defined $s->{output}
 }
 
-sub _store_template
+sub _template
 {
   my ($s) = shift ;
-  my ($S, $I, $E, $A, $ID) = @{$s->{-markers}} ;
-  $s->{chunks} = [ split /($S$I*$ID$A$E)/, ${$s->get_block(@_)} ] ;
-  $s->{zones}  =
-  [ map
-    {
-      if    ( !/^$S/ )            { undef                } # text
-      elsif ( /^$S$I($ID)$E$/ )   { $1                   } # end label
-      elsif ( /^$S($ID)($A)$E$/ ) { my $z = {id => $1};
-                                    $z->{attributes} = $2 if $2;
-                                    $z                   } # start label
-    } @{$s->{chunks}} ] ;
-  for ( my $i = $#{$s->{zones}}; $i >= 0; $i-- )  # find end
+  my ($t) = @_ ;
+  my $mtime = (stat($t))[9] ;
+  if (not ref $t) # if it is a path
   {
-    my $id = $s->{zones}[$i] ;
-    next if not defined $id or ref $id ; # next if not end
+    if ($mtime > $s->{templates}{$t}{mtime}) # if it is to be cached
+    {
+      $s->{templates}{$t}{t} = $s->_split_template($s->get_block(@_)) ;
+      $s->{templates}{$t}{mtime} = $mtime ;
+    }
+    $s->{templates}{$t}{t}
+  }
+  else { $s->_split_template($s->get_block(@_)) }
+}
+
+sub _split_template
+{
+  my ($s, $t) = @_ ;
+  my ($S, $I, $E, $A, $ID) = @{$s->{-markers}} ;
+  my $label       = qr/($S$I*$ID$A$E)/s  ;
+  my $start_label = qr/^$S($ID)($A)$E$/s ;
+  my $end_label   = qr/^$S$I($ID)$E$/s   ;
+  my @template    = map {
+                          {
+                            c => $_ ,
+                            z => do {    /$end_label/   &&  $1
+                                      || /$start_label/ && {id         => $1,
+                                                            attributes => $2} }
+    
+                          }
+                        } split /$label/, $$t ;
+  for ( my $i = $#template; $i >= 0; $i-- )  # find end
+  {
+    my $id = $template[$i]->{z};
+    next if (not $id or ref $id) ;
     for( my ($ii,$l)=($i-1,0) ; $ii>=0 ; $ii--,$l++ ) # find THE start
     {
-      my $the_start = $s->{zones}[$ii] ;
-      next unless ref $the_start eq 'HASH';
+      my $the_start = $template[$ii]->{z} ;
+      next unless ref $the_start ;          # next if not start
       next unless $the_start->{id} eq $id ; # next if not THE start
-      $the_start->{_s} = $ii + 1 ;
-      $the_start->{_e} = $ii + $l;
+      $the_start->{_s} = $ii + 1  ;
+      $the_start->{_e} = $ii + $l ;
       last ;
     }
   }
+  \@template ;
 }
+
+
 ############################## STANDARD HANDLERS ##############################
 
 # override these in subclasses to change defaults
-sub DEFAULT_VALUE_HANDLERS  { [ SCALAR(), REF(), CODE(), ARRAY(), HASH() ] }
+sub DEFAULT_VALUE_HANDLERS
+{
+  [ SCALAR() ,
+    REF()    ,
+    CODE()   ,
+    ARRAY()  ,
+    HASH()   ]
+}
+
 sub DEFAULT_ZONE_HANDLERS   { undef                                        }
 sub DEFAULT_POST_HANDLERS   { undef                                        }
 sub DEFAULT_TEXT_HANDLERS   { undef                                        }
@@ -220,8 +250,7 @@ sub HASH # value handler
     my ($z) = @_;
     if (ref $z->value eq 'HASH')        # if it's a HASH
     {
-      $z->zone_lookup = $z->value ;     # sets the new zone_lookup
-      $z->merge                   ;     # start again the process
+      $z->content_process                 ;     # start again the process
       last HANDLER                ;     # end of HANDLER loop
     }
   }
@@ -245,6 +274,7 @@ sub CODE # value handler
     }
   }
 }
+
 
 # predeclaration of autoloaded methods
 # needed because AutoSplit does not append to autosplit.ix
@@ -292,8 +322,8 @@ sub TRACE_DELETIONS # zone handler
   {
     my ($z) = @_ ;
     # do lookup and value processes as usual
-    $z->lookup         if (not defined $z->value) ;
-    $z->value_process  if     (defined $z->value) ;
+    $z->lookup_process ;
+    $z->value_process  ;
     # if they fail to find a true output trace the deletion
     if (not defined $z->output)
       { $z->output_process ('<<'.$z->id.' not found>>') }
@@ -311,6 +341,7 @@ sub INCLUDE_TEXT # zone handler
     if ($z->id eq 'INCLUDE_TEXT')
     {
       my $file = $z->attributes ;
+      local *I_TEXT;
       open I_TEXT, $file or croak "Error opening text file \"$file\": $^E" ;
       $z->text_process($_) while <I_TEXT> ;
       close I_TEXT ;
@@ -332,7 +363,7 @@ sub ID_list
     {
       my ($z) = @_ ;
       $z->output_process($ident x $z->level . $z->id . ":\n") ;
-      $z->merge ;
+      $z->content_process ;
       if ($z->content =~ /$S $ID $A $E/x)
       { $z->output_process($ident x $z->level . $end.$z->id . ":\n") }
       next ZONE ;
@@ -345,7 +376,7 @@ sub ID_list
 
 Text::MagicTemplate - magic merger of runtime values with templates
 
-=head1 VERSION 3.05
+=head1 VERSION 3.1
 
 =head1 WARNING!
 
@@ -545,6 +576,14 @@ When you need complex outputs you can build any immaginable nested loop, even mi
 
 You can load only the handlers you need, to gain speed, or you can add as many handlers you will use, to gain features. You can even write your own extension handler in just 2 or 3 lines of code, expanding its capability for your own purpose. (see L<new()|"new ( [constructor_arrays] )"> method )
 
+=item * Efficient and fast
+
+The internal rapresentation and storage of templates allows minimum memory requirement and completely avoid wasting copies of content. You can even include external (and probably huge) text files in the output without memory charges. (see L<"Include (huge) text files without memory charges">)
+
+=item * Automatic caching of template files
+
+Under mod_perl it could be very useful to have the template structure cached in memory, already parsed and ready to be used without any other process. Text::MagicTemplate opens and parses a template file only the first time or if the file has been modified.
+
 =item * Perl embedding
 
 Even if I don't encourage this approach, however you can very easily embed any quantity of perl code into any template. (see L<"Embed perl into a template">)
@@ -568,10 +607,6 @@ Change your code and Text::MagicTemplate will change its behaviour accordingly. 
 =item * Small footprint
 
 The MagicTemplate system doesn't use any other module and its code (including all the standard and autoloaded handlers) is just about 300 lines of pure perl I<(easier to write that this documentation :-) )>. You don't need any compiler in order to install it on any platform.
-
-=item * Efficient and fast
-
-The internal rapresentation and storage of templates allows minimum memory requirement and completely avoid wasting copies of content. You can even include external (and probably huge) text files in the output without memory charges. (see L<"Include (huge) text files without memory charges">)
 
 =back
 
@@ -635,7 +670,9 @@ If you don't pass any parameter to the constructor method, the constructor defau
 
 =head2 output ( template [, identifier] )
 
-This method merges the runtime values with the template and returns a reference to the output. It accepts one I<template> parameter that can be a reference to a SCALAR content, a path to a template file or a filehandle. If any I<identifier> is passed, it returns a reference to the output of just that block.
+B<WARNING>: this method is here for historical reasons, but it is not the maximum of efficiency. Please consider to use the L<print()|"print ( template [, identifier] )"> method when possible I<(see L<"Use the system efficiently">)>. You can also consider to write an I<output handler> that fits your needs but process the output content on the fly and without the need to collect the whole output as this method does.
+
+This method merges the runtime values with the template and returns a reference to the whole collected output. It accepts one I<template> parameter that can be a reference to a SCALAR content, a path to a template file or a filehandle. If any I<identifier> is passed, it returns a reference to the output of just that block.
 
     # template is a path
     $output = $mt->output( '/temp/template_file.html' ) ;
@@ -643,11 +680,17 @@ This method merges the runtime values with the template and returns a reference 
     # template is a reference
     $output = $mt->output( \$tpl_content ) ;
     
-    #template is a filehandler
-    $output = $mt->output( *FILEHANDLER );
+    # template is a filehandler
+    $output = $mt->output( \*FILEHANDLER );
+    # or
+    $output = $mt->output(  *FILEHANDLER );
+    
     
     # this limits the output to just 'my_block_identifier'
     $my_block_output = $mt->output( \$tpl_content, 'my_block_identifier');
+
+
+B<Note>: if I<template> is a path, the object will cache it automatically, so Text::MagicTemplate will open and parse the template file only the first time or if the file has been modified. If for any reason you don't want the template to be cached, pass it as a file handler.
 
 =head2 print ( template [, identifier] )
 
@@ -659,8 +702,10 @@ This method merges the runtime values with the template and prints the output. I
     # template is a reference
     $mt->print( \$tpl_content ) ;
     
-    #template is a filehandler
-    $mt->print( *FILEHANDLER );
+    # template is a filehandler
+    $mt->print( \*FILEHANDLER );
+    # or
+    $mt->print(  *FILEHANDLER );
     
     # this limits the output to just 'my_block_identifier'
     $mt->print( \$tpl_content, 'my_block_identifier' );
@@ -672,6 +717,8 @@ You can use the print() method as a static method as well. The static method acc
     # that explicitly means
     $mt = Text::MagicTemplate->new;
     $mt->print( 'template' );
+
+B<Note>: if I<template> is a path, the object will cache it automatically, so Text::MagicTemplate will open and parse the template file only the first time or if the file has been modified. If for any reason you don't want the template to be cached, pass it as a file handler. I<(see L<"Use the system efficiently">)>.
 
 =head2 get_block ( template [, identifier] )
 
@@ -707,13 +754,13 @@ This method sets the content of the block (or blocks) I<identifier> inside a I<t
 
 Calling this method (before the L<output()|"output ( template [, identifier] )"> or L<print()|"print ( template [, identifier] )"> methods) will redefine the behaviour of the module, so your program will print a pretty formatted list of only the identifiers present in the template, thus the programmer can pass a description of each label and block within a template to a designer.
 
-The method accepts an 'identation string' (usually a tab character or a few spaces), that will be used to ident nested blocks. If you omit the identation string 4 spaces will be used. The method accept also as second parameter a 'end marker string, tat is used to distinguish the end label in a container block. If you omit this a simple '/' will be used.
+The method accepts an I<identation string> (usually a tab character or a few spaces), that will be used to ident nested blocks. If you omit the identation string 4 spaces will be used. The method accept also as second parameter a I<end marker> string, tat is used to distinguish the end label in a container block. If you omit this, a simple '/' will be used.
 
     # defalut
     Text::MagicTemplate->ID_list;
     
     # custom identation
-    Text::MagicTemplate->ID_list("\t", '#');
+    Text::MagicTemplate->ID_list("\t", 'END OF ');
 
 See also L<"Prepare the identifiers description list">.
 
@@ -731,8 +778,8 @@ The new() method accepts one optional reference to a hash that can contain the f
     lookups
     zone_handlers
     value_handlers
-    value_handlers
     text_handlers
+    output_handlers
     post_handlers
 
 Constructor Arrays are array references containing elements that can completely change the behaviour of the object and even add code not directly related with the output generation but executed during the process.
@@ -760,7 +807,7 @@ B<Note>: to mantain backward compatibility, you can use the old constructor arra
                 -zone_handlers   => [ \&my_zone_handler, '_EVAL_'   ] ,
                 -value_handlers  => [ 'DEFAULT', \&my_value_handler ] ,
                 -text_handlers   =>   sub {print lc $_[1]}            ,
-                -value_handlers =>   sub {print uc $_[1]}            ,
+                -output_handlers =>   sub {print uc $_[1]}            ,
                 -post_handlers   =>   \&my_post_handler               ,
               } ;
 
@@ -991,9 +1038,9 @@ If you don't pass any C<value_handler> constructor array, the default will be us
 
     # that expicitly means
     $mt = new Text::MagicTemplate
-          value_handlers => [ qw( SCALAR REF CODE ARRAY HASH  ) ] ;
+          value_handlers => [ qw( SCALAR REF CODE ARRAY HASH GLOB ) ] ;
 
-Where 'DEFAULT', 'SCALAR', 'REF', 'CODE', 'ARRAY', 'HASH' are I<standard value handlers names>.
+Where 'DEFAULT', 'SCALAR', 'REF', 'CODE', 'ARRAY', 'HASH', 'GLOB' are I<standard value handlers names>.
 
 You can add, omit or change the order of the element in the array, fine tuning the behaviour of the object.
 
@@ -1002,7 +1049,7 @@ You can add, omit or change the order of the element in the array, fine tuning t
     
     # that explicitly means
     $mt = new Text::MagicTemplate
-              value_handlers => [ 'SCALAR','REF','CODE', 'ARRAY','HASH',
+              value_handlers => [ 'SCALAR','REF','CODE', 'ARRAY','HASH', 'GLOB'
                                   \&my_handler ] ;
     
     # or you can add, omit and change the order of the handlers
@@ -1031,11 +1078,9 @@ All the default values are based on a condition that checks the found value.
 
 A I<SCALAR> value sets the C<output> property to the value, and pass it to the C<output_process> ending the C<value_process> method.
 
-
 =item REF
 
 A I<REFERENCE> value (SCALAR or REF) sets the C<value> property to the dereferenced the value and start again the C<value_process()> method
-
 
 =item CODE
 
@@ -1317,13 +1362,13 @@ If you want to include in your template some area only for design purpose I<(for
 
 =head2 Setup labeled areas
 
-If you want to label some area in your template I<(for example to extract the area to mix with another template)>, just transform it into a block and give it an identifier that will always be defined in your code. A convenient way to do so is to set the identifier to a reference to an empty hash. This will generate the output of the block and (since the array does not contain any keys) the lookup will fallback into the stored locations.
+If you want to label some area in your template I<(for example to extract the area to mix with another template)>, just transform it into a block and give it an identifier that will always be defined in your code. A convenient way to do so is to define a reference to an empty hash. This will generate the output of the block and (since the array does not contain any keys) the lookup will fallback into the stored locations.
 
 =over
 
 =item the code
 
-    $my_labeled_area = {};  # a ref to an empty hash
+    $my_labeled_area = {}  ;  # a ref to an empty hash
 
 =item the template
 
@@ -1773,6 +1818,42 @@ Note that the default syntax markers ({/}) could somehow clash with perl blocks,
 
 =back
 
+=head2 Use the system efficiently
+
+Specially under mod_perl, you should be careful about the way you use Text::MagicTemplate. The system is very flexible, so you can use it in a variety of ways, but you have to know what is the best option for your needs.
+
+You can avoid waste of memory by avoiding the method C<output()> that needs to collect and store the output in memory. Use C<print()> instead that prints the output while it is produced, without charging the memory.
+
+Don't pass big templates contents as a reference, because Text::MagicTemplate copies the content in an internal and optimized representation of the template, so you would need twice the memory.
+
+Don't do this:
+
+    open TEMPLATE, '/path/to/big_template' ;
+    $big_template = do{local $/; <TEMPLATE>} ;
+    $output = $mt->output(\$big_template);
+    print $$output;
+
+You can save a lot of typing and a lot of memory if you do this instead:
+
+    $mt->print('/path/to/big_template') ;
+
+Besides, if you pass the template as a path, Text::MagicTemplate will cache it and will open and parse it just the first time or if it has been modified, so you can save a lot of processing too!
+
+If for any reason you don't want the template to be cached, pass it as a file handler.
+
+You can use a single object to cache multiple templates:
+
+   # in general setup
+   $mt = new Text::MagicTemplate ;
+   
+   # both templates will be cached in $mt
+   
+   # in sub A
+   $mt->print('/path/to/templateA') ;
+   
+   # in sub B
+   $mt->print('/path/to/templateB') ;
+
 =head1 SYNTAX GLOSSARY
 
 =over
@@ -1924,6 +2005,9 @@ More information at http://perl.4pro.net/?Text::MagicTemplate.
 =head1 AUTHOR
 
 Domizio Demichelis, <dd@4pro.net>.
+
+=for html
+<img src="http://perl.4pro.net/bug?Text::MagicTemplate" height="1" width="1" border="0">
 
 =head1 COPYRIGHT
 

@@ -1,56 +1,62 @@
 package Text::MagicTemplate::Zone ;
-our $VERSION = 3.05               ;
+$VERSION = 3.1                    ;
 use 5.005                         ;
 use strict                        ;
 our $AUTOLOAD                     ;
 
 sub new { bless $_[1], $_[0] }
 
-sub merge
+
+sub content_process
 {
   my ($z) = @_ ;
-  ZONE: for ( my $i=$z->_s ; $i<=$z->_e ; $i++ )
+  ZONE: for ( my $i = $z->_s ; $i <= $z->_e ; $i++ )
   {
-    if ( not $z->mt->{zones}[$i] ) { $z->text_process($z->mt->{chunks}[$i]) }
+    my $item = $z->mt->{template}[$i] ;
+    if ( not $item->{z} ) { $z->text_process($item->{c}) }
     else
     {
-      my $nz = ref($z)->new( { %{$z->mt->{zones}[$i]}     ,
+      my $nz = ref($z)->new( { %{$item->{z}}              ,
                                level     => $z->level + 1 ,
                                container => $z            ,
                                mt        => $z->mt        } ) ;
       $i = $nz->_e + 1 if $nz->_e ;
-      $nz->zone_process                               ;
-      $nz->lookup         if (not defined $nz->value) ;
-      $nz->value_process  if     (defined $nz->value) ;
+      $nz->zone_process   ;
+      $nz->lookup_process ;
+      $nz->value_process  ;
     }
   }
 }
 
-sub content
+sub merge { no strict 'refs' ; goto &{ref($_[0]).'::content_process'} }
+
+sub lookup_process
 {
   my ($z) = @_ ;
-  return unless $z->_s;
-  join '', @{$z->mt->{chunks}}[$z->_s..$z->_e]
+  return if defined $z->value ;
+  $z->value = $z->lookup ;
 }
-                   
+
 sub lookup
 {
-  my ($z) = @_ ;
-  for ( my $az=$z ; $az->container ; $az=$az->container )
-      { next unless my $zl = $az->zone_lookup ;
-        return if defined ($z->value = $z->_lookup($zl)) }
+  my ($z, $id) = @_ ;
+  $id ||= $z->id ;
+  my $val ;
+  for ( my $az=$z->container ; $az->container ; $az=$az->container )
+      { return $val if defined ($val = $z->_lookup($az->value, $id)) }
   for ( @{$z->mt->{-lookups}} )
-      { return if defined ($z->value = $z->_lookup($_))  }
+      { return $val if defined ($val = $z->_lookup($_, $id)) }
+  undef
 }
 
 sub _lookup
 {
-  my ($z, $l) = @_ ;
+  my ($z, $l, $id) = @_ ;
   $z->location = $l ;
-  if (ref $l eq 'HASH') { $l->{$z->id} }
+  if (ref $l eq 'HASH') { $l->{$id} }
   else
   {
-    local *S = '*'.(ref $l||$l).'::'.$z->id ;
+    local *S = '*'.(ref $l||$l).'::'.$id ;
     if    (defined ${*S}    ) { ${*S}     }
     elsif (defined *S{CODE} ) { *S{CODE}  }
     elsif (defined *S{ARRAY}) { *S{ARRAY} }
@@ -59,14 +65,31 @@ sub _lookup
   }
 }
 
+sub value_process
+{
+  my ($z) = @_ ;
+  return unless defined $z->value ;
+  my $ch = $z->mt->{-value_handlers} or return;
+  HANDLER: for (@$ch) { $_->(@_) }
+}
+
+sub content
+{
+  my ($z, $t) = @_ ;
+  return unless $z->_e;
+  join '', map {$_->{c}} @{$z->mt->{template}}[$z->_s..$z->_e]
+}
+
 sub AUTOLOAD :lvalue
 {
   (my $n = $AUTOLOAD) =~ s/.*://;
   no strict 'refs';
-  if (my ($w) = $n=~/^(\w+)_process$/) # process
+  if ( my ($w) = $n=~/^(\w+)_process$/ ) # process
   { *$AUTOLOAD = sub { my $ch = $_[0]->mt->{"-${w}_handlers"} or return;
                        HANDLER: for (@$ch) {$_->(@_)} } }
-  else # property
+  elsif ( $n=~/^(?:mt|id|attributes)$/ ) # read only properties
+  { *$AUTOLOAD = sub{ $_[0]->{$n} } }
+  else # read-write lvalue properties
   { *$AUTOLOAD = sub:lvalue{ $_[0]->{$n}=$_[1] if defined $_[1];$_[0]->{$n} } }
   goto &$AUTOLOAD ;
   my $dummy ; # to make :lvalue work in AUTOLOAD
@@ -82,13 +105,13 @@ __END__
 
 Text::MagicTemplate::Zone - The Zone object
 
-=head1 VERSION 3.05
+=head1 VERSION 3.1
 
 =head1 DESCRIPTION
 
 Since 2.1 version, Text::MagicTemplate uses the Text::MagicTemplate::Zone objects to internally represent zones. A reference to the I<Zone object> is passed as a parameter to each handler and is passed to your subroutines whenever an identifier trigger their execution.
 
-Unless you plan to write an extension, you will find useful just the L<"attributes"> and L<"content"> properties, that you can use to retrieve parameters from your subroutines. (see L<Text::MagicTemplate/"Pass parameters to a subroutine">).
+Unless you plan to write an extension, you will find useful just the L<"attributes">, L<"content"> and L<"param"> properties, that you can use to retrieve parameters from your subroutines. (see L<Text::MagicTemplate/"Pass parameters to a subroutine">).
 
 =head1 ZONE OBJECT METHODS
 
@@ -115,11 +138,10 @@ As you can see, the HANDLER loop is nested inside the ZONE loop, not vice versa.
 
 These are the processes that are executed for any single zone:
 
-  merge
-    parse
-    new zone creation
+  content process
+    nested zones creation
       zone process
-      lookup
+      lookup process
       value process
       text & output processes
     post process
@@ -132,39 +154,53 @@ As general rule, a C<*_process> is a method that executes in sequence the handle
     output_process()  output_handlers
     post_process()    post_handlers
 
-=head2 merge()
+B<Note>: the C<lookup_process> and the C<content_process> are exceptions to this rule.
 
-This method starts (and manage) the output generation: it first parses the zone content, using the C<markers> constructor array to find new zones, it creates each new zone object and apply the appropriate process on the new zones.
+=head2 content_process()
+
+This method starts (and manage) the output generation for the zone: it process the I<zone content>, creates each new zone object and apply the appropriate process on the new zones.
 
 B<Note>: You can change the way of parsing by customizing the I<-marker> constructor array. You can change the resulting output by customizing the other constructor arrays.
+
+=head2 merge()
+
+Deprecated method. Use C<content_process()> instead.
 
 =head2 zone_process()
 
 The scope of this method is organizing the Zone object.
 
-As other process methods, this process simply calls in turn all the handlers in the C<zone_handlers> constructor array (change that to change this process). This method is executed inside 2 nested loops: the outer ZONE labeled loop and the inner HANDLER labeled loop, so you can control the iteration by using statements as: C<'next ZONE'> to end the merge method for the current zone, or C<'last HANDLER'> to end the C<zone_process()> itself and pass to the next processes.
+As other process methods, this process simply calls in turn all the handlers in the C<zone_handlers> constructor array (change that to change this process). This method is executed inside 2 nested loops: the outer ZONE labeled loop and the inner HANDLER labeled loop, so you can control the iteration by using statements as: C<'next ZONE'> to end the C<process()> method for the current zone, or C<'last HANDLER'> to end the C<zone_process()> itself and pass to the next processes.
 
 B<Note>: Since it is called first, and just after the creation of each new zone object, this is a very powerful method that allows you to manage the output generation before any other process. With this method you can even bypass or change the way of calling the other processes.
 
-=head2 lookup()
+=head2 lookup([identifier])
 
-The C<lookup()> method try to match a zone identifier with a code identifier. If it find a match it sets the I<zone value> property to the value of the found identifier. You can customize the lookup by changing the items in the C<lookups> constructor array.
+This method tries to match a zone id with a code identifier: if it find a match it returns the value of the found code identifier, if it does not find any match it returns the C< undef> value.
 
-B<Note>: it is called by default IF the I<zone value> property is undefined.
+If I<identifier> is omitted, it will use the I<zone id>. Pass an I<identifier> to lookup values from other zones.
+
+This method looks up first in the containers found values, then in the lookups locations. You can customize the lookup by changing the items in the C<lookups> constructor array.
+
+=head2 lookup_process()
+
+The scope of this method is setting the I<zone value> with a value from the code. It executes the C<lookup()> method with the I<zone id>
+
+B<Note>: it works only IF the I<zone value> property is undefined.
 
 =head2 value_process()
 
 The scope of this method is finding out a scalar value from the code to pass to the C<output_process()>.
 
-As other process methods, the C<value_process()> simply calls in turn all the handlers in the C<value_handlers> constructor array (change that to change this process). This method is executed inside 2 nested loops: the outer ZONE labeled loop and the inner HANDLER labeled loop, so you can control the iteration by using statements as: C<'next ZONE'> to end the merge method for the current zone, or C<'last HANDLER'> to end the C<value_process()> itself and pass to the next processes.
+As other process methods, the C<value_process()> simply calls in turn all the handlers in the C<value_handlers> constructor array (change that to change this process). This method is executed inside 2 nested loops: the outer ZONE labeled loop and the inner HANDLER labeled loop, so you can control the iteration by using statements as: C<'next ZONE'> to end the C<process()> method for the current zone, or C<'last HANDLER'> to end the C<value_process()> itself and pass to the next processes.
 
-B<Note>: it is called by default IF the zone value property is defined.
+B<Note>: it works only IF the zone value property is defined.
 
 =head2 text_process()
 
 The scope of this method is processing only the text that comes from the template and that goes into the output (in other words the template content between zones).
 
-As other process methods, the C<text_process()> simply calls in turn all the handlers in the C<text_handlers> constructor array (change that to change this process). This method is executed inside 2 nested loops: the outer ZONE labeled loop and the inner HANDLER labeled loop, so you can control the iteration by using statements as: C<'next ZONE'> to end the merge method for the current zone, or C<'last HANDLER'> to end the C<text_process()> itself and pass to the next processes.
+As other process methods, the C<text_process()> simply calls in turn all the handlers in the C<text_handlers> constructor array (change that to change this process). This method is executed inside 2 nested loops: the outer ZONE labeled loop and the inner HANDLER labeled loop, so you can control the iteration by using statements as: C<'next ZONE'> to end the C<process()> method for the current zone, or C<'last HANDLER'> to end the C<text_process()> itself and pass to the next processes.
 
 B<Note>: If the C<text_handlers> constructor array is undefined (as it is by default) the text will be processed by the C<output_process()> instead. Use this method only if you need to process the text coming from the template in some special way, different by the text coming from the code.
 
@@ -172,7 +208,7 @@ B<Note>: If the C<text_handlers> constructor array is undefined (as it is by def
 
 The scope of this method is processing the text that comes from the code. It is usually used to process the text coming from the template as well (if the C<text_process()> is not used).
 
-As other process methods, the C<output_process()> simply calls in turn all the handlers in the C<output_handlers> constructor array (change that to change this process). This method is executed inside 2 nested loops: the outer ZONE labeled loop and the inner HANDLER labeled loop, so you can control the iteration by using statements as: C<'next ZONE'> to end the merge method for the current zone, or C<'last HANDLER'> to end the C<output_process()> itself and pass to the next processes.
+As other process methods, the C<output_process()> simply calls in turn all the handlers in the C<output_handlers> constructor array (change that to change this process). This method is executed inside 2 nested loops: the outer ZONE labeled loop and the inner HANDLER labeled loop, so you can control the iteration by using statements as: C<'next ZONE'> to end the <process()> method for the current zone, or C<'last HANDLER'> to end the C<output_process()> itself and pass to the next processes.
 
 =head2 post_process()
 
@@ -196,7 +232,7 @@ All the properties are :lvalue methods, that means that you can use the property
 
 If you plan to customize the behaviours of Text::MagicTemplate, you will find useful the C<AUTOLOAD> method. You can automatically set and retrieve your own properties by just using them. The following example shows how you can add a custom 'my_attributes' property to the I<zone object>
 
-B<Note>: Since the AUTOLOAD method is used to address all the C<*_process> methods as well, you should avoid property names that ends with '_process', besides avoid '_s' and '_e' names, that are internal properties.
+B<Note>: Since the AUTOLOAD method is used to address all the C<*_process> methods as well, you should avoid property names that ends with '_process'.
 
 In the template zone 'my_zone':
 
@@ -234,19 +270,25 @@ B<Note>: this is a read only property.
 
 =head2 id
 
-The C<id> property allows you to access and set the B<zone identifier>.
+The C<id> property allows you to access and set the B<zone identifier>. It is undefined only if the zone is the I<main template zone>
+
+B<Note>: this is a read only property.
 
 =head2 attributes
 
-The C<attributes> property allows you to access and set the B<attributes string>. This string contains everything between the end of the label IDENTIFIER and the END_LABEL marker.
+The C<attributes> property allows you to access and set the B<attributes string>. This string contains everything between the end of the label IDENTIFIER and the END_LABEL marker. It returns the empty string when there are no attributes.
+
+B<Note>: this is a read only property.
+
+=head2 content
+
+The C<content> property allows you to access the B<zone content>.
+
+B<Note>: this is a read only property.
 
 =head2 param
 
 This property is added by the C<_EVAL_ATTRIBUTES_> zone handler (if you explicitly use it), and - in that case - holds the B<evalued attributes structure>. You can use this property to hold your favorite structure: just create it with a simple zone handler as C<_EVAL_ATTRIBUTES_>.
-
-=head2 content
-
-The C<content> property allows you to access and set the B<zone content>
 
 =head2 container
 
@@ -263,12 +305,6 @@ This property holds the number of nesting level of the zone. -1 for the I<main t
 This property holds the package name, the blessed object or the hash reference from which comes the I<matching identifier> at that particular moment of the process.
 
 Usually you don't need to set this property, but you could find it very useful, for example, to access the object methods of a lookup element from inside an extension. I<(more documentation to come)>
-
-=head2 zone_lookup
-
-This property holds the B<zone lookup> (usually set by the C<HASH> I<value handler>).
-
-B<Note>: this is the same concept of the C<lookups> constructor array: it's just the private lookups array where the C<lookup_process()> looks up first.
 
 =head2 value
 
@@ -302,6 +338,14 @@ B<Note>: In order to make it work, if the found value is a SCALAR or a REFERENCE
 
 This property holds the B<output string> coming from the code.
 
+=head2 _s
+
+This property holds the offset of the template chunk where the content starts. Use it to re-locate the content of a zone and only if you know what you are doing.
+
+=head2 _e
+
+This property holds the offset of the template chunk where the content ends. Use it to re-locate the content of a zone and only if you know what you are doing.
+
 =head1 SEE ALSO
 
 =over
@@ -321,6 +365,9 @@ More information at http://perl.4pro.net/?Text::MagicTemplate::Zone.
 =head1 AUTHOR
 
 Domizio Demichelis, <dd@4pro.net>.
+
+=for html
+<img src="http://perl.4pro.net/bug?Text::MagicTemplate::Zone" height="1" width="1" border="0"> 
 
 =head1 COPYRIGHT
 

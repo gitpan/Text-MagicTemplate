@@ -1,5 +1,5 @@
 package Bundle::Text::MagicTemplate;
-$VERSION = '3.00';
+$VERSION = 3.1;
 __END__
 
 =head1 NAME
