@@ -1,5 +1,5 @@
-package Text::MagicTemplate::Tutorial
-$VERSION = '1.01'
+package Text::MagicTemplate::Tutorial;
+$VERSION = '1.02';
 __END__
 
 =head1 NAME
@@ -390,7 +390,7 @@ Working links pointing to static templates files (useful for testing and preview
 
 Working links pointing to your program, defining different query strings.
 
-See also L<"Passing parameters to a subroutine">.
+See also L<"Pass parameters to a subroutine">.
 
 =back
 
@@ -478,7 +478,7 @@ The behaviour will return the evaluated content of the block.
 
 Since a block can contain any quantity of text, you could use this type of configuration as a cheap way to embed perl into (HTML) files.
 
-Note that the default syntax markers ({/}) could somehow clash with perl blocks, so if you want to embed perl into your templates, you should consider to redefine the syntax with some more appropriate marker (See L<"Redefine Syntax">).
+Note that the default syntax markers ({/}) could somehow clash with perl blocks, so if you want to embed perl into your templates, you should consider to redefine the syntax with some more appropriate marker (See L<"Redefine Markers">).
 
 =back
 

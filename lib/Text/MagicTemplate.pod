@@ -91,15 +91,49 @@ On the other side, the programmer has just to define variables and subroutines a
 
 This is the general three of the Text::MagicTemplate system (just in case you get lost :-) )
 
+    Bundle
+        Text
+             MagicTemplate  a bundle to install everything in one step
     Text
-        MagicTemplate   the main module (start from here)
-            Tutorial    the tutorial (very useful)
-            Utilities   used internally (don't worry about it)
-        MagicTemplateX  extensions namespace (documentation for power users)
-            Core        core extensions collection
-            HTML        HTML extensions collection
+        MagicTemplate       the main module (start from here)
+            Tutorial        the tutorial (very useful)
+            Utilities       used internally (don't worry about it)
+        MagicTemplateX      extensions namespace (documentation for power users)
+            Core            core extensions collection
+            HTML            HTML extensions collection
     HTML
         MagicTemplate   wrapper for Text::MagicTemplate in HTML environment
+
+=head2 Installation
+
+=over
+
+=item Prerequisites
+
+    Perl version >= 5.005
+
+=item CPAN
+
+If you want to install Text::MagicTemplate plus all related extensions (L<Text::MagicTemplateX::HTML|Text::MagicTemplateX::HTML> and prerequisites), all in one easy step:
+
+    perl -MCPAN -e 'install Bundle::Text::MagicTemplate'
+
+=item Standard installation
+
+From the directory where this file is located, type:
+
+    perl Makefile.PL
+    make
+    make test
+    make install
+
+B<Note>: this installs just the main distribution and does not install L<Text::MagicTemplateX::HTML|Text::MagicTemplateX::HTML> and its prerequisites.
+
+=item Manual installation
+
+If your OS does not have any 'make' support, just copy the content of the /lib dir into perl installation site dir, maintaining the same hierarchy.
+
+=back
 
 =head2 Policy
 
@@ -577,6 +611,10 @@ The type of the value found by a lookup (i.e. UNDEF, SCALAR, HASH, ARRAY, ...), 
 A I<zone> is an area in the template that must have an I<identifier>, may have some I<attributes> and may have a I<content>. A zone without any content is also called I<label>, while a zone with content is also called I<block>.
 
 =back
+
+=head1 SEE ALSO
+
+L<Text::MagicTemplate::Tutorial|Text::MagicTemplate::Tutorial>, L<Text::MagicTemplateX|Text::MagicTemplateX>, L<Text::MagicTemplate::Core|Text::MagicTemplate::Core>, L<Text::MagicTemplateX::HTML|Text::MagicTemplateX::HTML>.
 
 =head1 SUPPORT and FEEDBACK
 

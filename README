@@ -16,13 +16,16 @@ Structure
 
 This is the general three of the Text::MagicTemplate system (just in case you get lost :-) )
 
+    Bundle
+        Text
+             MagicTemplate  a bundle to install everything in one step
     Text
-        MagicTemplate   the main module (start from here)
-            Tutorial    the tutorial (very useful)
-            Utilities   used internally (don't worry about it)
-        MagicTemplateX  extensions namespace (documentation for power users)
-            Core        core extensions collection
-            HTML        HTML extensions collection
+        MagicTemplate       the main module (start from here)
+            Tutorial        the tutorial (very useful)
+            Utilities       used internally (don't worry about it)
+        MagicTemplateX      extensions namespace (documentation for power users)
+            Core            core extensions collection
+            HTML            HTML extensions collection
     HTML
         MagicTemplate   wrapper for Text::MagicTemplate in HTML environment
 
@@ -34,7 +37,14 @@ Installation
 - Perl version 5.005 or more recent.
 
 
-1. Standard installation
+1. CPAN installation
+- if you want to install Text::MagicTemplate plus all related extensions
+(Text::MagicTemplateX::HTML and prerequisites), all in one easy step:
+
+    perl -MCPAN -e 'install Bundle::Text::MagicTemplate'
+
+
+2. Standard installation
 - from the directory where this file is located, type:
 
 	perl Makefile.PL
@@ -43,9 +53,10 @@ Installation
 	make install
 
 
-2. Manual installation
+3. Manual installation
 - if your OS does not have any 'make' support, just copy the
 content of the /lib dir into perl installation site dir, maintaining the same hierarchy
+
 
 --
 Domizio Demichelis <dd@4pro.net>

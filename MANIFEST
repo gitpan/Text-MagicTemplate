@@ -2,6 +2,7 @@ MANIFEST
 Makefile.PL
 README
 Warning
+lib/Bundle/Text/MagicTemplate.pm
 lib/Text/MagicTemplate.pm
 lib/Text/MagicTemplate.pod
 lib/Text/MagicTemplate/Tutorial.pm

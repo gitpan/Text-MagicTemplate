@@ -1,5 +1,5 @@
 package Text::MagicTemplate;
-$VERSION = '2.02';
+$VERSION = '2.03';
 use 5.005;
 use Carp qw ( croak );
 use strict;
